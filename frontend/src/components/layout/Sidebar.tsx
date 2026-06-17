@@ -45,7 +45,7 @@ export default function Sidebar() {
           {logoData?.logo ? (
             <img src={logoData.logo} alt="Logo" className="logo-circle" />
           ) : (
-            <span className="logo-fallback" style={{ fontSize: 9 }}>NPD<br />SWAT</span>
+            <span className="logo-fallback" style={{ fontSize: 9 }}>PMC<br />TÁTICA</span>
           )}
         </div>
         <AnimatePresence>
@@ -56,7 +56,7 @@ export default function Sidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="text-center overflow-hidden whitespace-nowrap"
             >
-              <p className="font-orbitron text-xs font-bold text-gold tracking-widest">SWAT</p>
+              <p className="font-orbitron text-xs font-bold text-gold tracking-widest">TÁTICA</p>
               <p className="font-mono text-[10px] text-txt3 tracking-wider">SISTEMA INTERNO</p>
             </motion.div>
           )}
@@ -104,7 +104,7 @@ export default function Sidebar() {
             className="p-4 border-t border-bdr"
           >
             <p className="font-mono text-[9px] text-txt3 text-center tracking-widest">
-              © SISTEMA SWAT v1.0
+              © SISTEMA TÁTICA v2.0
             </p>
           </motion.div>
         )}

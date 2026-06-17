@@ -23,7 +23,7 @@ const PARTICLES_OPTIONS: ISourceOptions = {
   fpsLimit: 60,
   particles: {
     number: { value: 50 },
-    color: { value: '#c9a227' },
+    color: { value: '#909090' },
     opacity: { value: { min: 0.05, max: 0.35 } },
     size: { value: { min: 1, max: 2.5 } },
     move: {
@@ -45,7 +45,7 @@ function LoginParticles() {
   )
 }
 
-const BOOT_TEXT = 'SISTEMA SWAT v1.0 — AUTENTICAÇÃO REQUERIDA'
+const BOOT_TEXT = 'SISTEMA TÁTICA v2.0 — AUTENTICAÇÃO REQUERIDA'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -116,9 +116,9 @@ export default function LoginPage() {
           >
             <div className="logo-ring" style={{ width: 72, height: 72 }}>
               {logoData?.logo ? (
-                <img src={logoData.logo} alt="Logo SWAT" className="logo-circle" />
+                <img src={logoData.logo} alt="Logo Tática" className="logo-circle" />
               ) : (
-                <span className="logo-fallback">NPD<br />SWAT</span>
+                <span className="logo-fallback">PMC<br />TÁTICA</span>
               )}
             </div>
             <motion.div

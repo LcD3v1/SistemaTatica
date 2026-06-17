@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg:    #050505;
+  --color-sb:    #0a0a0a;
+  --color-card:  #111111;
+  --color-card2: #171717;
+  --color-bdr:   #1e1e1e;
+  --color-bdr2:  #2a2a2a;
+  --color-bdrg:  #3a3a3a;
+  --color-txt:   #e8e8e8;
+  --color-txt2:  #787878;
+  --color-txt3:  #404040;
+  --color-gold:  #909090;
+  --color-gold2: #aaaaaa;
+  --color-gold3: #c8c8c8;
+  --color-green: #27ae60;
+  --color-red:   #c0392b;
+  --color-blue:  #2980b9;
+}
+
 @property --angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -8,18 +27,18 @@
 
 :root {
   --bg:    #050505;
-  --sb:    #080808;
-  --card:  #0e0e0e;
-  --card2: #141414;
-  --bdr:   #1c180a;
-  --bdr2:  #28200d;
-  --bdrg:  #3d3010;
-  --txt:   #ede8d8;
-  --txt2:  #8a7a55;
-  --txt3:  #4a4030;
-  --gold:  #c9a227;
-  --gold2: #d4af37;
-  --gold3: #f0c040;
+  --sb:    #0a0a0a;
+  --card:  #111111;
+  --card2: #171717;
+  --bdr:   #1e1e1e;
+  --bdr2:  #2a2a2a;
+  --bdrg:  #3a3a3a;
+  --txt:   #e8e8e8;
+  --txt2:  #787878;
+  --txt3:  #404040;
+  --gold:  #909090;
+  --gold2: #aaaaaa;
+  --gold3: #c8c8c8;
   --green: #27ae60;
   --red:   #c0392b;
   --blue:  #2980b9;
@@ -97,20 +116,20 @@ h1, h2, h3, .font-orbitron {
 
 /* ── Cyber card (neon sharp / ciberpunk) ─────────────────────── */
 .cyber-card-wrap {
-  filter: drop-shadow(0 0 3px rgba(201,162,39,0.12));
+  filter: drop-shadow(0 0 3px rgba(144,144,144,0.12));
   transition: filter 0.35s ease;
 }
 .cyber-card-wrap:hover {
   filter:
-    drop-shadow(0 0 10px rgba(201,162,39,0.55))
-    drop-shadow(0 0 26px rgba(201,162,39,0.18));
+    drop-shadow(0 0 10px rgba(144,144,144,0.55))
+    drop-shadow(0 0 26px rgba(144,144,144,0.18));
 }
 
 .cyber-card {
   --cut: 12px;
   position: relative;
   background: var(--card);
-  border: 1px solid rgba(201,162,39,0.3);
+  border: 1px solid rgba(144,144,144,0.3);
   clip-path: polygon(
     var(--cut) 0%,
     100% 0%,
@@ -123,8 +142,8 @@ h1, h2, h3, .font-orbitron {
   overflow: hidden;
 }
 .cyber-card-wrap:hover .cyber-card {
-  border-color: rgba(201,162,39,0.75);
-  background: #101009;
+  border-color: rgba(144,144,144,0.75);
+  background: #111111;
 }
 
 /* Linha diagonal decorativa nos cantos cortados */
@@ -138,8 +157,8 @@ h1, h2, h3, .font-orbitron {
     135deg,
     transparent 0%,
     transparent calc(50% - 0.5px),
-    rgba(201,162,39,0.45) calc(50% - 0.5px),
-    rgba(201,162,39,0.45) calc(50% + 0.5px),
+    rgba(144,144,144,0.45) calc(50% - 0.5px),
+    rgba(144,144,144,0.45) calc(50% + 0.5px),
     transparent calc(50% + 0.5px)
   );
   pointer-events: none;
@@ -155,8 +174,8 @@ h1, h2, h3, .font-orbitron {
     315deg,
     transparent 0%,
     transparent calc(50% - 0.5px),
-    rgba(201,162,39,0.45) calc(50% - 0.5px),
-    rgba(201,162,39,0.45) calc(50% + 0.5px),
+    rgba(144,144,144,0.45) calc(50% - 0.5px),
+    rgba(144,144,144,0.45) calc(50% + 0.5px),
     transparent calc(50% + 0.5px)
   );
   pointer-events: none;
@@ -165,7 +184,7 @@ h1, h2, h3, .font-orbitron {
 
 /* ── Hex grid background ─────────────────────────────────────── */
 .hex-grid-bg {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='52' viewBox='0 0 60 52'%3E%3Cpolygon points='30,1 58,16 58,46 30,51 2,46 2,16' fill='none' stroke='%23c9a227' stroke-width='0.4' opacity='0.15'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='52' viewBox='0 0 60 52'%3E%3Cpolygon points='30,1 58,16 58,46 30,51 2,46 2,16' fill='none' stroke='%23909090' stroke-width='0.4' opacity='0.15'/%3E%3C/svg%3E");
   background-size: 60px 52px;
 }
 
@@ -173,13 +192,13 @@ h1, h2, h3, .font-orbitron {
 .input-gold:focus {
   outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 1px var(--gold), 0 0 12px rgba(201,162,39,0.25);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 12px rgba(144,144,144,0.25);
 }
 
 /* ── Pulse animation ─────────────────────────────────────────── */
 @keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.4); }
-  50%       { box-shadow: 0 0 0 8px rgba(201, 162, 39, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(144, 144, 144, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(144, 144, 144, 0); }
 }
 .pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
 
@@ -200,7 +219,7 @@ input[type=range].hud-slider::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--gold);
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(201,162,39,0.6);
+  box-shadow: 0 0 8px rgba(144,144,144,0.6);
   border: 2px solid var(--gold3);
 }
 input[type=range].hud-slider::-moz-range-thumb {
@@ -209,7 +228,7 @@ input[type=range].hud-slider::-moz-range-thumb {
   border-radius: 50%;
   background: var(--gold);
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(201,162,39,0.6);
+  box-shadow: 0 0 8px rgba(144,144,144,0.6);
   border: 2px solid var(--gold3);
 }
 
@@ -223,13 +242,13 @@ input[type=range].hud-slider::-moz-range-thumb {
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 0 28px rgba(201,162,39,0.5), 0 0 60px rgba(201,162,39,0.2);
+  box-shadow: 0 0 28px rgba(144,144,144,0.5), 0 0 60px rgba(144,144,144,0.2);
   animation: logoPulse 3s ease-in-out infinite;
 }
 
 @keyframes logoPulse {
-  0%, 100% { box-shadow: 0 0 28px rgba(201,162,39,0.5), 0 0 60px rgba(201,162,39,0.2); }
-  50%       { box-shadow: 0 0 40px rgba(201,162,39,0.8), 0 0 80px rgba(201,162,39,0.4); }
+  0%, 100% { box-shadow: 0 0 28px rgba(144,144,144,0.5), 0 0 60px rgba(144,144,144,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(144,144,144,0.8), 0 0 80px rgba(144,144,144,0.4); }
 }
 
 .logo-circle {
@@ -262,8 +281,8 @@ input[type=range].hud-slider::-moz-range-thumb {
 .logo-drop-area:hover,
 .logo-drop-area.drag-active {
   border-color: var(--gold);
-  background: rgba(201,162,39,0.05);
-  box-shadow: 0 0 20px rgba(201,162,39,0.15);
+  background: rgba(144,144,144,0.05);
+  box-shadow: 0 0 20px rgba(144,144,144,0.15);
 }
 .logo-drop-area.error {
   border-color: var(--red);

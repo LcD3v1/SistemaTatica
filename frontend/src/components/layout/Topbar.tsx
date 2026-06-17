@@ -20,7 +20,7 @@ export default function Topbar() {
   const { toggleSidebar } = useUIStore()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const title = PAGE_TITLES[pathname] || 'SISTEMA SWAT'
+  const title = PAGE_TITLES[pathname] || 'SISTEMA TÁTICA'
 
   const { data: logoData } = useLogo()
 
@@ -45,7 +45,7 @@ export default function Topbar() {
           <img src={logoData.logo} alt="Logo" className="logo-circle" />
         ) : (
           <span className="logo-fallback" style={{ fontSize: 7, letterSpacing: 0 }}>
-            NPD<br />SWAT
+            PMC<br />TÁTICA
           </span>
         )}
       </div>

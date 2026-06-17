@@ -131,7 +131,7 @@ export default function LogoUploader({ currentLogo }: Props) {
           {displayLogo ? (
             <img src={displayLogo} alt="Logo" className="logo-circle" />
           ) : (
-            <span className="logo-fallback">NPD<br />SWAT</span>
+            <span className="logo-fallback">PMC<br />TÁTICA</span>
           )}
         </div>
         {preview && (

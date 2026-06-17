@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Image, List, Briefcase, Radio, UserPlus, Users,
-  Database, Plus, Trash2, Upload, Download,
+  Plus, Trash2,
 } from 'lucide-react'
 import {
   useQrus, useAddQru, useDeleteQru,
@@ -18,8 +18,6 @@ import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
 import ModalOverlay from '@/components/ui/ModalOverlay'
 import LoadingHud from '@/components/ui/LoadingHud'
-import api from '@/lib/axios'
-import { queryClient } from '@/lib/queryClient'
 import LogoUploader from '@/components/ui/LogoUploader'
 import type { CategoriaRecrutamento, Nivel } from '@/types'
 
@@ -30,7 +28,6 @@ const TABS = [
   { id: 'qrus',       label: 'QRUs',           icon: Radio,    minNivel: 'moderador' },
   { id: 'recrutamento', label: 'Recrutamento', icon: UserPlus, minNivel: 'moderador' },
   { id: 'contas',     label: 'Contas',         icon: Users,    minNivel: 'admin' },
-  { id: 'backup',     label: 'Dados',          icon: Database, minNivel: 'admin' },
 ] as const
 
 const RANK: Record<Nivel, number> = { membro: 0, moderador: 1, admin: 2 }
@@ -109,40 +106,6 @@ export default function ConfiguracoesPage() {
 
   const [novaContaModal, setNovaContaModal] = useState(false)
   const [novaContaForm, setNovaContaForm] = useState({ username: '', password: '', nivel: 'membro' })
-  const restoreInputRef = useRef<HTMLInputElement>(null)
-
-  // Backup
-  async function handleBackup() {
-    try {
-      const res = await api.get('/config/backup', { responseType: 'blob' })
-      const blob = res.data as Blob
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `swat-backup-${new Date().toISOString().slice(0,10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-      addToast('success', 'Backup baixado!')
-    } catch {
-      addToast('error', 'Erro ao gerar backup.')
-    }
-  }
-
-  // Restore
-  async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!confirm('Isso irá sobrescrever TODOS os dados. Tem certeza?')) return
-    try {
-      const text = await file.text()
-      const data = JSON.parse(text)
-      await api.post('/config/restore', data)
-      queryClient.invalidateQueries()
-      addToast('success', 'Dados restaurados com sucesso!')
-    } catch {
-      addToast('error', 'Erro ao restaurar backup. Arquivo inválido.')
-    }
-  }
 
   // Recrutamento
   const [newCatNome, setNewCatNome] = useState('')
@@ -351,34 +314,6 @@ export default function ConfiguracoesPage() {
             </div>
           )}
 
-          {/* Backup/Restore */}
-          {activeTab === 'backup' && (
-            <div className="space-y-6">
-              <h3 className="font-orbitron text-xs text-gold tracking-wider">GESTÃO DE DADOS</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-card2 border border-bdr rounded space-y-3">
-                  <h4 className="font-mono text-xs text-txt2 tracking-wider">EXPORTAR</h4>
-                  <HudButton size="sm" className="w-full justify-center" onClick={handleBackup}>
-                    <Download size={14} className="inline mr-1.5" />
-                    Backup JSON
-                  </HudButton>
-                </div>
-                <div className="p-4 bg-card2 border border-bdr rounded space-y-3">
-                  <h4 className="font-mono text-xs text-txt2 tracking-wider">RESTAURAR</h4>
-                  <div>
-                    <HudButton size="sm" variant="danger" className="w-full justify-center" onClick={() => restoreInputRef.current?.click()}>
-                      <Upload size={14} className="inline mr-1.5" />
-                      Importar JSON
-                    </HudButton>
-                    <input ref={restoreInputRef} type="file" accept=".json" onChange={handleRestore} className="hidden" />
-                  </div>
-                </div>
-              </div>
-              <p className="font-mono text-xs text-txt3">
-                ⚠ A restauração substitui todos os dados existentes. Faça um backup antes de importar.
-              </p>
-            </div>
-          )}
         </div>
       </GlowCard>
 
@@ -390,7 +325,8 @@ export default function ConfiguracoesPage() {
             <input
               value={novaContaForm.username}
               onChange={e => setNovaContaForm(p => ({ ...p, username: e.target.value }))}
-              className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
+              placeholder="min. 2 chars — só letras, números, _ . -"
+              className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt placeholder:text-txt3"
             />
           </div>
           <div>
@@ -399,7 +335,8 @@ export default function ConfiguracoesPage() {
               type="password"
               value={novaContaForm.password}
               onChange={e => setNovaContaForm(p => ({ ...p, password: e.target.value }))}
-              className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
+              placeholder="min. 4 caracteres"
+              className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt placeholder:text-txt3"
             />
           </div>
           <div>
@@ -421,7 +358,11 @@ export default function ConfiguracoesPage() {
                 if (!novaContaForm.username || !novaContaForm.password) return
                 createConta.mutate(novaContaForm, {
                   onSuccess: () => { addToast('success', 'Conta criada!'); setNovaContaModal(false); setNovaContaForm({ username: '', password: '', nivel: 'membro' }) },
-                  onError: (err: unknown) => addToast('error', (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Erro ao criar conta.'),
+                  onError: (err: unknown) => {
+                    const data = (err as { response?: { data?: { error?: string; details?: string[] } } })?.response?.data
+                    const msg = data?.details?.length ? data.details.join(' | ') : (data?.error ?? 'Erro ao criar conta.')
+                    addToast('error', msg)
+                  },
                 })
               }}
               className="flex-1"

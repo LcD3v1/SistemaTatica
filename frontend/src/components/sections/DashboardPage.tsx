@@ -139,7 +139,7 @@ export default function DashboardPage() {
               <Shield size={32} className="text-gold" />
             </div>
           </div>
-          <h1 className="font-orbitron text-2xl font-bold text-gold tracking-widest mb-1">UNIDADE SWAT</h1>
+          <h1 className="font-orbitron text-2xl font-bold text-gold tracking-widest mb-1">UNIDADE TÁTICA</h1>
           <p className="font-mono text-xs text-txt2 tracking-wider mb-4">SISTEMA DE GESTÃO OPERACIONAL</p>
           <div className="inline-block bg-card border border-bdr rounded-lg px-6 py-2">
             <span className="font-mono text-xs text-txt2 mr-2">WIN RATE</span>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         animate="visible"
         className="grid grid-cols-4 gap-4"
       >
-        <StatCard icon={Activity}       label="TOTAL DE AÇÕES"       value={stats.total}  color="#c9a227" />
+        <StatCard icon={Activity}       label="TOTAL DE AÇÕES"       value={stats.total}  color="#909090" />
         <StatCard icon={TrendingUp}     label="MEMBROS ATIVOS"       value={stats.ativos} color="#27ae60" />
         <StatCard icon={Shield}         label="WIN RATE"             value={stats.winRate} color="#2980b9" suffix="%" />
         <StatCard icon={AlertTriangle}  label="COM ADVERTÊNCIAS"     value={stats.comAdv} color="#c0392b" />
@@ -214,10 +214,10 @@ export default function DashboardPage() {
             <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">AÇÕES POR MÊS</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barData}>
-                <XAxis dataKey="mes" tick={{ fill: '#8a7a55', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-                <YAxis tick={{ fill: '#8a7a55', fontSize: 10 }} allowDecimals={false} />
+                <XAxis dataKey="mes" tick={{ fill: '#787878', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+                <YAxis tick={{ fill: '#787878', fontSize: 10 }} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="ações" fill="#c9a227" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="ações" fill="#909090" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                       <div className="mt-1 h-1 rounded bg-bdrg overflow-hidden">
                         <motion.div
                           className="h-full rounded"
-                          style={{ background: '#c9a227' }}
+                          style={{ background: '#909090' }}
                           initial={{ width: 0 }}
                           animate={{ width: `${op.winRate}%` }}
                           transition={{ duration: 0.8, delay: idx * 0.1 }}
