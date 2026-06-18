@@ -1,4 +1,4 @@
-export type Nivel = 'admin' | 'moderador' | 'membro'
+export type Nivel = 'admin' | 'moderador' | 'membro' | 'view_only'
 export type StatusMembro = 'Ativo' | 'Inativo' | 'Ausência'
 export type ResultadoAcao = 'Vitória' | 'Derrota' | 'Participação'
 export type ResultadoRecruita = 'Aprovado' | 'Reprovado'
@@ -24,12 +24,18 @@ export interface ParticipanteAcao {
   patenteUnidade: string
 }
 
+export interface ParticipanteExterno {
+  nome: string
+  patente?: string
+}
+
 export interface Acao {
   id: number
   data: string
   qru: string
   resultado: ResultadoAcao
   participants: ParticipanteAcao[]
+  participantesExtras?: ParticipanteExterno[]
 }
 
 export interface Conta {

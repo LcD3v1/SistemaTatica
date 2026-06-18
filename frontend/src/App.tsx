@@ -13,23 +13,35 @@ import RecrutamentoPage from '@/components/sections/RecrutamentoPage'
 import MembrosPage from '@/components/sections/MembrosPage'
 import ConfiguracoesPage from '@/components/sections/ConfiguracoesPage'
 
+export const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
+
 interface ProtectedRouteProps {
   children: React.ReactNode
   minNivel?: Nivel
+  allowViewOnly?: boolean
 }
 
-function ProtectedRoute({ children, minNivel = 'membro' }: ProtectedRouteProps) {
+function ProtectedRoute({ children, minNivel = 'membro', allowViewOnly = false }: ProtectedRouteProps) {
   const { token, user } = useAuthStore()
   if (!token || !user) return <Navigate to="/login" replace />
-  const RANK: Record<Nivel, number> = { membro: 0, moderador: 1, admin: 2 }
+
+  if (user.nivel === 'view_only') {
+    return allowViewOnly ? <>{children}</> : <Navigate to="/estatisticas" replace />
+  }
+
   if (RANK[user.nivel] < RANK[minNivel]) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore()
-  if (token) return <Navigate to="/dashboard" replace />
+  const { token, user } = useAuthStore()
+  if (token) return <Navigate to={user?.nivel === 'view_only' ? '/estatisticas' : '/dashboard'} replace />
   return <>{children}</>
+}
+
+function RootRedirect() {
+  const { user } = useAuthStore()
+  return <Navigate to={user?.nivel === 'view_only' ? '/estatisticas' : '/dashboard'} replace />
 }
 
 export default function App() {
@@ -41,14 +53,18 @@ export default function App() {
             <PublicRoute><LoginPage /></PublicRoute>
           } />
           <Route path="/" element={
-            <ProtectedRoute><AppShell /></ProtectedRoute>
+            <ProtectedRoute allowViewOnly={true}><AppShell /></ProtectedRoute>
           }>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
+            <Route index element={<RootRedirect />} />
+            <Route path="dashboard" element={
+              <ProtectedRoute allowViewOnly={false}><DashboardPage /></ProtectedRoute>
+            } />
             <Route path="acoes/nova" element={
               <ProtectedRoute minNivel="moderador"><RegistrarAcaoPage /></ProtectedRoute>
             } />
-            <Route path="acoes/historico" element={<HistoricoPage />} />
+            <Route path="acoes/historico" element={
+              <ProtectedRoute allowViewOnly={false}><HistoricoPage /></ProtectedRoute>
+            } />
             <Route path="estatisticas" element={<EstatisticasPage />} />
             <Route path="recrutamento" element={
               <ProtectedRoute minNivel="moderador"><RecrutamentoPage /></ProtectedRoute>

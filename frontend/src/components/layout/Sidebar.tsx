@@ -2,31 +2,36 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, PlusCircle, History, BarChart2,
-  Users, Settings, UserPlus,
+  Users, Settings, UserPlus, Eye,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useLogo } from '@/hooks/useConfig'
+import type { Nivel } from '@/types'
 
 const NAV_ITEMS = [
-  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard',         nivel: 'membro'    },
-  { to: '/acoes/nova',      icon: PlusCircle,      label: 'Registrar Ação',    nivel: 'moderador' },
-  { to: '/acoes/historico', icon: History,          label: 'Histórico',         nivel: 'membro'    },
-  { to: '/estatisticas',    icon: BarChart2,        label: 'Estatísticas',      nivel: 'membro'    },
-  { to: '/recrutamento',    icon: UserPlus,         label: 'Recrutamento',      nivel: 'moderador' },
-  { to: '/membros',         icon: Users,            label: 'Membros',           nivel: 'membro'    },
-  { to: '/configuracoes',   icon: Settings,         label: 'Configurações',     nivel: 'moderador' },
-] as const
+  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard',         minNivel: 'membro'    as Nivel, viewOnly: false },
+  { to: '/acoes/nova',      icon: PlusCircle,      label: 'Registrar Ação',    minNivel: 'moderador' as Nivel, viewOnly: false },
+  { to: '/acoes/historico', icon: History,          label: 'Histórico',         minNivel: 'membro'    as Nivel, viewOnly: false },
+  { to: '/estatisticas',    icon: BarChart2,        label: 'Estatísticas',      minNivel: 'membro'    as Nivel, viewOnly: true  },
+  { to: '/recrutamento',    icon: UserPlus,         label: 'Recrutamento',      minNivel: 'moderador' as Nivel, viewOnly: false },
+  { to: '/membros',         icon: Users,            label: 'Membros',           minNivel: 'membro'    as Nivel, viewOnly: true  },
+  { to: '/configuracoes',   icon: Settings,         label: 'Configurações',     minNivel: 'moderador' as Nivel, viewOnly: false },
+]
 
-const RANK = { membro: 0, moderador: 1, admin: 2 } as const
+const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
 
 export default function Sidebar() {
   const { user } = useAuthStore()
   const { sidebarCollapsed } = useUIStore()
   const { data: logoData } = useLogo()
 
-  const userRank = user ? RANK[user.nivel] : 0
-  const visibleItems = NAV_ITEMS.filter(item => userRank >= RANK[item.nivel])
+  const isViewOnly = user?.nivel === 'view_only'
+  const userRank = user ? (RANK[user.nivel] ?? -1) : 0
+
+  const visibleItems = NAV_ITEMS.filter(item =>
+    isViewOnly ? item.viewOnly : userRank >= RANK[item.minNivel]
+  )
 
   return (
     <motion.nav
@@ -62,6 +67,14 @@ export default function Sidebar() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Banner view only */}
+      {isViewOnly && !sidebarCollapsed && (
+        <div className="mx-2 mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-bdr border border-bdr2 rounded text-txt3 font-mono text-[10px] tracking-widest">
+          <Eye size={11} className="shrink-0" />
+          SOMENTE LEITURA
+        </div>
+      )}
 
       {/* Navegação */}
       <nav className="flex-1 py-4 flex flex-col gap-1 px-2 overflow-y-auto">

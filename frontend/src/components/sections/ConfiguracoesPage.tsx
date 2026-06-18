@@ -279,6 +279,7 @@ export default function ConfiguracoesPage() {
                           <option value="admin">👑 Admin</option>
                           <option value="moderador">🔷 Moderador</option>
                           <option value="membro">👤 Membro</option>
+                          <option value="view_only">👁 View Only</option>
                         </select>
                       </td>
                       <td className="px-3 py-2.5">
@@ -349,6 +350,7 @@ export default function ConfiguracoesPage() {
               <option value="membro">👤 Membro</option>
               <option value="moderador">🔷 Moderador</option>
               <option value="admin">👑 Admin</option>
+              <option value="view_only">👁 View Only</option>
             </select>
           </div>
           <div className="flex gap-3 pt-2">

@@ -34,19 +34,19 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(128),
-  newPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(4).max(128),
 })
 
 export const createContaSchema = z.object({
-  username: z.string().min(3).max(64).regex(/^[\w.\-]+$/, 'Usuário contém caracteres inválidos'),
-  password: z.string().min(8).max(128),
-  nivel: z.enum(['admin', 'moderador', 'membro']),
+  username: z.string().min(2).max(64).regex(/^[\w.\-]+$/, 'Usuário contém caracteres inválidos'),
+  password: z.string().min(4).max(128),
+  nivel: z.enum(['admin', 'moderador', 'membro', 'view_only']),
 })
 
 export const updateContaSchema = z.object({
-  nivel: z.enum(['admin', 'moderador', 'membro']).optional(),
+  nivel: z.enum(['admin', 'moderador', 'membro', 'view_only']).optional(),
   ativo: z.boolean().optional(),
-  password: z.string().min(8).max(128).optional(),
+  password: z.string().min(4).max(128).optional(),
 }).refine(body => Object.keys(body).length > 0, { message: 'Nenhum campo fornecido' })
 
 export const membroSchema = z.object({
@@ -72,6 +72,10 @@ export const acaoSchema = z.object({
   participants: z.array(z.object({
     memberId:       z.number().int().positive(),
     patenteUnidade: safeStrOpt(50),
+  })).default([]),
+  participantesExtras: z.array(z.object({
+    nome:    safeStr(1, 100),
+    patente: z.string().max(50).optional(),
   })).default([]),
 })
 

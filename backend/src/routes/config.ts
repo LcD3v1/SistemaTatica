@@ -140,7 +140,7 @@ router.put('/contas/:id', requireAuth, adminOnly, validateBody(updateContaSchema
   const { nivel, ativo, password } = req.body as { nivel?: string; ativo?: boolean; password?: string }
   const changes: string[] = []
 
-  if (nivel && ['admin', 'moderador', 'membro'].includes(nivel)) {
+  if (nivel && ['admin', 'moderador', 'membro', 'view_only'].includes(nivel)) {
     changes.push(`nível: ${conta.nivel}→${nivel}`)
     conta.nivel = nivel as Conta['nivel']
   }

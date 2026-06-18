@@ -1,4 +1,4 @@
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut, Menu, Eye } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -23,6 +23,7 @@ export default function Topbar() {
   const title = PAGE_TITLES[pathname] || 'SISTEMA TÁTICA'
 
   const { data: logoData } = useLogo()
+  const isViewOnly = user?.nivel === 'view_only'
 
   async function handleLogout() {
     await logout()
@@ -42,7 +43,7 @@ export default function Topbar() {
       {/* Logo miniatura */}
       <div className="logo-ring" style={{ width: 32, height: 32, border: '2px solid var(--gold)' }}>
         {logoData?.logo ? (
-          <img src={logoData.logo} alt="Logo" className="logo-circle" />
+          <img src={logoData.logo} alt="Logo Tática" className="logo-circle" />
         ) : (
           <span className="logo-fallback" style={{ fontSize: 7, letterSpacing: 0 }}>
             PMC<br />TÁTICA
@@ -53,6 +54,14 @@ export default function Topbar() {
       <h1 className="font-orbitron text-sm font-bold text-gold tracking-widest flex-1">
         {title}
       </h1>
+
+      {/* Badge view only — visível e permanente */}
+      {isViewOnly && (
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-bdr2 bg-bdr font-mono text-[10px] text-txt2 tracking-widest">
+          <Eye size={11} className="text-txt3" />
+          SOMENTE LEITURA
+        </div>
+      )}
 
       {user && (
         <div className="flex items-center gap-3">
