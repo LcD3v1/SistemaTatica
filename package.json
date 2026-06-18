@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Sistema de Gestão NPD S.W.A.T.",
   "scripts": {
-    "build": "cd frontend && npm run build && cd ../backend && npm run build",
-    "start": "cd backend && set NODE_ENV=production && node dist/index.js",
+    "build": "npm run install:all && cd frontend && npm run build && cd ../backend && npm run build",
+    "start": "cd backend && NODE_ENV=production node dist/index.js",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "cd backend && npm install && cd ../frontend && npm install"
