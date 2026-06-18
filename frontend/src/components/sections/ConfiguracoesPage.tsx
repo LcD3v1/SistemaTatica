@@ -30,7 +30,7 @@ const TABS = [
   { id: 'contas',     label: 'Contas',         icon: Users,    minNivel: 'admin' },
 ] as const
 
-const RANK: Record<Nivel, number> = { membro: 0, moderador: 1, admin: 2 }
+const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
 
 function ListEditor({
   items, onAdd, onDelete, placeholder, canEdit,
