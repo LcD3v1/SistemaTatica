@@ -151,12 +151,26 @@ export default function HistoricoPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-txt2">
-                      {acao.participants.length > 0
-                        ? acao.participants.map(p => {
-                            const m = membroMap.get(p.memberId)
-                            return m ? m.policial : `ID:${p.memberId}`
-                          }).join(', ')
-                        : '—'}
+                      {(() => {
+                        const membrosStr = acao.participants.map(p => {
+                          const m = membroMap.get(p.memberId)
+                          return m ? m.policial : `ID:${p.memberId}`
+                        }).join(', ')
+                        const extrasStr = (acao.participantesExtras ?? [])
+                          .map(e => e.patente ? `${e.nome} (${e.patente})` : e.nome)
+                          .join(', ')
+                        const all = [membrosStr, extrasStr].filter(Boolean).join(', ')
+                        if (!all) return '—'
+                        const extCount = (acao.participantesExtras ?? []).length
+                        return (
+                          <span>
+                            {all}
+                            {extCount > 0 && (
+                              <span className="ml-1.5 text-blue/70 text-[10px]">[+{extCount} ext]</span>
+                            )}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       {canEdit && (

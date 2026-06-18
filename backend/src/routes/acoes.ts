@@ -16,13 +16,18 @@ router.get('/export/csv', requireAuth, modOrAdmin, (_req: Request, res: Response
   const sorted = [...data.acoes].sort((a, b) => b.id - a.id)
 
   for (const acao of sorted) {
-    const participantes = acao.participants
+    const membersStr = acao.participants
       .map(p => {
         const m = membroMap.get(p.memberId)
         return m ? `${p.patenteUnidade} ${m.policial}` : `ID:${p.memberId}`
       })
       .join(' | ')
 
+    const extrasStr = (acao.participantesExtras ?? [])
+      .map(e => e.patente ? `${e.patente} ${e.nome} [EXT]` : `${e.nome} [EXT]`)
+      .join(' | ')
+
+    const participantes = [membersStr, extrasStr].filter(Boolean).join(' | ')
     rows.push([acao.id, acao.data, acao.qru, acao.resultado, `"${participantes}"`].join(','))
   }
 
@@ -69,6 +74,7 @@ router.post('/', requireAuth, modOrAdmin, validateBody(acaoSchema), (req: Reques
     qru: body.qru,
     resultado: body.resultado,
     participants: body.participants,
+    participantesExtras: body.participantesExtras ?? [],
   }
 
   data.acoes.push(novaAcao)
