@@ -57,13 +57,22 @@ export interface RecCfg {
   categorias: CategoriaRecrutamento[]
 }
 
+export interface AvaliacaoIndividual {
+  contaId: number
+  username: string
+  scores: Record<string, number>
+  total: number
+  observacoes?: string
+  data: string
+}
+
 export interface Recruta {
   id: number
   nome: string
   data: string
-  scores: Record<string, number>
-  total: number
-  resultado: ResultadoRecruita
+  avaliacoes: AvaliacaoIndividual[]
+  resultado?: ResultadoRecruita
+  status: 'aberto' | 'fechado'
   observacoes?: string
 }
 

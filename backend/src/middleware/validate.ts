@@ -94,12 +94,15 @@ export const acaoSchema = z.object({
   })).default([]),
 })
 
-export const recrutaSchema = z.object({
+export const recrutaCreateSchema = z.object({
   nome:        safeStr(1, 100),
   data:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  observacoes: safeStrOpt(500).default(''),
+})
+
+export const avaliacaoRecrutaSchema = z.object({
   scores:      z.record(z.string(), z.number().min(0).max(10)).default({}),
   total:       z.number().min(0).max(10).default(0),
-  resultado:   z.enum(['Aprovado', 'Reprovado']).default('Reprovado'),
   observacoes: safeStrOpt(500).default(''),
 })
 

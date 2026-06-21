@@ -10,6 +10,7 @@ import RegistrarAcaoPage from '@/components/sections/RegistrarAcaoPage'
 import HistoricoPage from '@/components/sections/HistoricoPage'
 import EstatisticasPage from '@/components/sections/EstatisticasPage'
 import RecrutamentoPage from '@/components/sections/RecrutamentoPage'
+import RecrutaCandidatoPage from '@/components/sections/RecrutaCandidatoPage'
 import MembrosPage from '@/components/sections/MembrosPage'
 import ConfiguracoesPage from '@/components/sections/ConfiguracoesPage'
 
@@ -60,14 +61,17 @@ export default function App() {
               <ProtectedRoute allowViewOnly={false}><DashboardPage /></ProtectedRoute>
             } />
             <Route path="acoes/nova" element={
-              <ProtectedRoute minNivel="moderador"><RegistrarAcaoPage /></ProtectedRoute>
+              <ProtectedRoute minNivel="membro"><RegistrarAcaoPage /></ProtectedRoute>
             } />
             <Route path="acoes/historico" element={
               <ProtectedRoute allowViewOnly={false}><HistoricoPage /></ProtectedRoute>
             } />
             <Route path="estatisticas" element={<EstatisticasPage />} />
             <Route path="recrutamento" element={
-              <ProtectedRoute minNivel="moderador"><RecrutamentoPage /></ProtectedRoute>
+              <ProtectedRoute minNivel="membro"><RecrutamentoPage /></ProtectedRoute>
+            } />
+            <Route path="recrutamento/:id" element={
+              <ProtectedRoute minNivel="membro"><RecrutaCandidatoPage /></ProtectedRoute>
             } />
             <Route path="membros" element={<MembrosPage />} />
             <Route path="configuracoes" element={

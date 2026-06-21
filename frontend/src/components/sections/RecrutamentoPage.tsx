@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Trash2 } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Trash2, ChevronRight, Users, Lock, Unlock } from 'lucide-react'
 import { useRecrutos, useCreateRecruta, useDeleteRecruta } from '@/hooks/useRecrutos'
-import { useRecCfg } from '@/hooks/useConfig'
+import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
@@ -11,216 +11,222 @@ import LoadingHud from '@/components/ui/LoadingHud'
 import { formatDate } from '@/lib/utils'
 import type { Recruta } from '@/types'
 
-interface FormData {
-  nome: string
-  data: string
-  observacoes: string
-}
-
 export default function RecrutamentoPage() {
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const { addToast } = useUIStore()
-  const { data: recCfg, isLoading: cfgLoading } = useRecCfg()
   const { data: recrutas, isLoading } = useRecrutos()
   const createRecruta = useCreateRecruta()
   const deleteRecruta = useDeleteRecruta()
 
-  const [scores, setScores] = useState<Record<number, number>>({})
+  const [showModal, setShowModal] = useState(false)
+  const [nome, setNome] = useState('')
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10))
+  const [observacoes, setObservacoes] = useState('')
 
-  const { register, handleSubmit, reset } = useForm<FormData>({
-    defaultValues: { data: new Date().toISOString().slice(0, 10) },
-  })
+  const canEdit = user?.nivel === 'admin' || user?.nivel === 'moderador'
 
-  const categorias = recCfg?.categorias ?? []
-  const notaMinima = recCfg?.notaMinima ?? 7
-
-  const total = useMemo(() => {
-    if (categorias.length === 0) return 0
-    const totalPeso = categorias.reduce((s, c) => s + c.peso, 0)
-    const soma = categorias.reduce((s, c) => s + (scores[c.id] ?? 0) * c.peso, 0)
-    return totalPeso > 0 ? parseFloat((soma / totalPeso).toFixed(2)) : 0
-  }, [scores, categorias])
-
-  const aprovado = total >= notaMinima
-
-  async function onSubmit(data: FormData) {
+  async function handleCreate() {
+    if (!nome.trim()) return
     try {
-      await createRecruta.mutateAsync({
-        nome: data.nome,
-        data: data.data,
-        scores,
-        total,
-        resultado: aprovado ? 'Aprovado' : 'Reprovado',
-        observacoes: data.observacoes,
-      })
-      addToast('success', 'Avaliação registrada!')
-      reset({ data: new Date().toISOString().slice(0, 10) })
-      setScores({})
+      await createRecruta.mutateAsync({ nome: nome.trim(), data, observacoes: observacoes.trim() || undefined })
+      addToast('success', 'Candidato registrado!')
+      setShowModal(false)
+      setNome('')
+      setObservacoes('')
+      setData(new Date().toISOString().slice(0, 10))
     } catch {
-      addToast('error', 'Erro ao registrar avaliação.')
+      addToast('error', 'Erro ao registrar candidato.')
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm('Apagar avaliação?')) return
+  async function handleDelete(id: number, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!confirm('Remover este candidato e todas as avaliações?')) return
     try {
       await deleteRecruta.mutateAsync(id)
-      addToast('success', 'Avaliação removida.')
+      addToast('success', 'Candidato removido.')
     } catch {
       addToast('error', 'Erro ao remover.')
     }
   }
 
-  if (isLoading || cfgLoading) return <LoadingHud />
+  const mediaAvaliações = (r: Recruta) => {
+    if (r.avaliacoes.length === 0) return null
+    return parseFloat((r.avaliacoes.reduce((s, a) => s + a.total, 0) / r.avaliacoes.length).toFixed(1))
+  }
+
+  if (isLoading) return <LoadingHud />
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="grid grid-cols-2 gap-6">
-        {/* Formulário */}
-        <GlowCard>
-          <div className="p-6">
-            <h2 className="font-orbitron text-xs font-bold text-gold tracking-wider mb-6">NOVA AVALIAÇÃO</h2>
+    <div className="p-6 space-y-4 max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-orbitron text-sm font-bold text-gold tracking-wider">RECRUTAMENTO</h2>
+        {canEdit && (
+          <HudButton size="sm" onClick={() => setShowModal(true)}>
+            <Plus size={14} className="inline mr-1.5" />
+            NOVO CANDIDATO
+          </HudButton>
+        )}
+      </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="font-mono text-xs text-txt2 tracking-wider block mb-1.5">NOME DO CANDIDATO</label>
-                <input
-                  {...register('nome', { required: true })}
-                  className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
-                  placeholder="Nome completo"
-                />
-              </div>
-
-              <div>
-                <label className="font-mono text-xs text-txt2 tracking-wider block mb-1.5">DATA</label>
-                <input
-                  {...register('data')}
-                  type="date"
-                  className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
-                />
-              </div>
-
-              {/* Sliders por categoria */}
-              {categorias.length === 0 ? (
-                <p className="font-mono text-xs text-txt3 py-4 text-center">
-                  Configure as categorias em Configurações
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {categorias.map(cat => (
-                    <div key={cat.id}>
-                      <div className="flex justify-between mb-1.5">
-                        <label className="font-mono text-xs text-txt2">{cat.nome}</label>
-                        <span className="font-orbitron text-xs text-gold">
-                          {scores[cat.id] ?? 0}/10
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={10}
-                        step={0.5}
-                        value={scores[cat.id] ?? 0}
-                        onChange={e => setScores(prev => ({ ...prev, [cat.id]: parseFloat(e.target.value) }))}
-                        className="hud-slider w-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Barra de pontuação */}
-              <div className="pt-2">
-                <div className="flex justify-between mb-2">
-                  <span className="font-mono text-xs text-txt2">PONTUAÇÃO TOTAL</span>
-                  <span className="font-orbitron text-lg font-bold" style={{ color: aprovado ? '#27ae60' : '#c0392b' }}>
-                    {total}/10
-                  </span>
-                </div>
-                <div className="h-2 bg-bdrg rounded overflow-hidden">
-                  <motion.div
-                    className="h-full rounded"
-                    style={{ background: aprovado ? '#27ae60' : '#c0392b' }}
-                    animate={{ width: `${(total / 10) * 100}%` }}
-                    transition={{ duration: 0.4 }}
-                  />
-                </div>
-                <div className="flex justify-end mt-1">
-                  <span className="font-mono text-[10px] text-txt3">mínimo: {notaMinima}</span>
-                </div>
-              </div>
-
-              {/* Badge resultado */}
-              {categorias.length > 0 && (
-                <motion.div
-                  animate={{ scale: [0.95, 1.05, 1] }}
-                  transition={{ duration: 0.3 }}
-                  key={aprovado ? 'ap' : 'rep'}
-                  className={`text-center py-3 rounded border font-orbitron text-sm tracking-widest ${
-                    aprovado
-                      ? 'border-green/50 bg-green/10 text-green'
-                      : 'border-red/50 bg-red/10 text-red'
-                  }`}
-                >
-                  {aprovado ? '✓ APROVADO' : '✕ REPROVADO'}
-                </motion.div>
-              )}
-
-              <div>
-                <label className="font-mono text-xs text-txt2 tracking-wider block mb-1.5">OBSERVAÇÕES</label>
-                <textarea
-                  {...register('observacoes')}
-                  rows={2}
-                  className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt resize-none"
-                />
-              </div>
-
-              <HudButton type="submit" loading={createRecruta.isPending} size="md" className="w-full justify-center">
-                REGISTRAR AVALIAÇÃO
-              </HudButton>
-            </form>
-          </div>
-        </GlowCard>
-
-        {/* Histórico */}
-        <GlowCard>
-          <div className="p-4">
-            <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">HISTÓRICO DE AVALIAÇÕES</h3>
-            {(recrutas ?? []).length === 0 ? (
-              <p className="font-mono text-xs text-txt3 text-center py-8">Nenhuma avaliação registrada</p>
-            ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {(recrutas ?? []).map((r: Recruta) => (
+      {/* Lista */}
+      <GlowCard>
+        <div className="divide-y divide-bdr">
+          {(recrutas ?? []).length === 0 ? (
+            <p className="text-center font-mono text-xs text-txt3 py-12">Nenhum candidato registrado</p>
+          ) : (
+            <AnimatePresence>
+              {(recrutas ?? []).map((r: Recruta) => {
+                const media = mediaAvaliações(r)
+                const jaAvaliou = r.avaliacoes.some(a => a.contaId === user?.contaId)
+                return (
                   <motion.div
                     key={r.id}
+                    layout
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-3 bg-card2 rounded border border-bdr group"
+                    exit={{ opacity: 0 }}
+                    onClick={() => navigate(`/recrutamento/${r.id}`)}
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-bdr/40 cursor-pointer transition-colors group"
                   >
-                    <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        r.resultado === 'Aprovado' ? 'bg-green' : 'bg-red'
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-xs text-txt truncate">{r.nome}</p>
-                      <p className="font-mono text-[10px] text-txt3">{formatDate(r.data)}</p>
+                    {/* Status icon */}
+                    <div className={`shrink-0 ${r.status === 'aberto' ? 'text-gold' : 'text-txt3'}`}>
+                      {r.status === 'aberto' ? <Unlock size={16} /> : <Lock size={16} />}
                     </div>
-                    <span className="font-orbitron text-xs" style={{ color: r.resultado === 'Aprovado' ? '#27ae60' : '#c0392b' }}>
-                      {r.total.toFixed(1)}
-                    </span>
-                    <button
-                      onClick={() => handleDelete(r.id)}
-                      className="opacity-0 group-hover:opacity-100 text-txt3 hover:text-red transition-all"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-mono text-sm text-txt font-semibold truncate">{r.nome}</span>
+                        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded border tracking-widest ${
+                          r.status === 'aberto'
+                            ? 'text-gold border-gold/40 bg-gold/10'
+                            : 'text-txt3 border-bdr2 bg-bdr'
+                        }`}>
+                          {r.status === 'aberto' ? 'ABERTO' : 'FECHADO'}
+                        </span>
+                        {r.status === 'aberto' && jaAvaliou && (
+                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded border text-green border-green/40 bg-green/10 tracking-widest">
+                            AVALIADO
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-[10px] text-txt3">{formatDate(r.data)}</span>
+                        <span className="flex items-center gap-1 font-mono text-[10px] text-txt3">
+                          <Users size={10} />
+                          {r.avaliacoes.length} avaliação{r.avaliacoes.length !== 1 ? 'ões' : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Resultado / Média */}
+                    <div className="text-right shrink-0">
+                      {r.status === 'fechado' && r.resultado && (
+                        <span
+                          className="font-orbitron text-xs font-bold"
+                          style={{ color: r.resultado === 'Aprovado' ? '#27ae60' : '#c0392b' }}
+                        >
+                          {r.resultado === 'Aprovado' ? '✓ APROVADO' : '✕ REPROVADO'}
+                        </span>
+                      )}
+                      {media !== null && (
+                        <p className="font-mono text-[10px] text-txt3">{r.status === 'aberto' ? `média atual: ${media}` : `média: ${media}`}</p>
+                      )}
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {canEdit && (
+                        <button
+                          onClick={(e) => handleDelete(r.id, e)}
+                          className="opacity-0 group-hover:opacity-100 text-txt3 hover:text-red transition-all p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                      <ChevronRight size={14} className="text-txt3 group-hover:text-txt transition-colors" />
+                    </div>
                   </motion.div>
-                ))}
+                )
+              })}
+            </AnimatePresence>
+          )}
+        </div>
+      </GlowCard>
+
+      {/* Modal novo candidato */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-card border border-bdr rounded-lg p-6 w-full max-w-sm shadow-2xl"
+            >
+              <h3 className="font-orbitron text-xs font-bold text-gold tracking-wider mb-4">NOVO CANDIDATO</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="font-mono text-xs text-txt2 block mb-1">NOME</label>
+                  <input
+                    autoFocus
+                    value={nome}
+                    onChange={e => setNome(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+                    className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
+                    placeholder="Nome do candidato"
+                  />
+                </div>
+                <div>
+                  <label className="font-mono text-xs text-txt2 block mb-1">DATA</label>
+                  <input
+                    type="date"
+                    value={data}
+                    onChange={e => setData(e.target.value)}
+                    className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
+                  />
+                </div>
+                <div>
+                  <label className="font-mono text-xs text-txt2 block mb-1">OBSERVAÇÕES</label>
+                  <textarea
+                    value={observacoes}
+                    onChange={e => setObservacoes(e.target.value)}
+                    rows={2}
+                    className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt resize-none"
+                    placeholder="Opcional..."
+                  />
+                </div>
               </div>
-            )}
-          </div>
-        </GlowCard>
-      </div>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-2 border border-bdr2 rounded font-mono text-xs text-txt3 hover:text-txt transition-colors"
+                >
+                  CANCELAR
+                </button>
+                <HudButton
+                  onClick={handleCreate}
+                  loading={createRecruta.isPending}
+                  disabled={!nome.trim()}
+                  className="flex-1 justify-center"
+                >
+                  REGISTRAR
+                </HudButton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

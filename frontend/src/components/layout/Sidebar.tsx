@@ -11,10 +11,10 @@ import type { Nivel } from '@/types'
 
 const NAV_ITEMS = [
   { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard',         minNivel: 'membro'    as Nivel, viewOnly: false },
-  { to: '/acoes/nova',      icon: PlusCircle,      label: 'Registrar Ação',    minNivel: 'moderador' as Nivel, viewOnly: false },
+  { to: '/acoes/nova',      icon: PlusCircle,      label: 'Registrar Ação',    minNivel: 'membro'    as Nivel, viewOnly: false },
   { to: '/acoes/historico', icon: History,          label: 'Histórico',         minNivel: 'membro'    as Nivel, viewOnly: false },
   { to: '/estatisticas',    icon: BarChart2,        label: 'Estatísticas',      minNivel: 'membro'    as Nivel, viewOnly: true  },
-  { to: '/recrutamento',    icon: UserPlus,         label: 'Recrutamento',      minNivel: 'moderador' as Nivel, viewOnly: false },
+  { to: '/recrutamento',    icon: UserPlus,         label: 'Recrutamento',      minNivel: 'membro'    as Nivel, viewOnly: false },
   { to: '/membros',         icon: Users,            label: 'Membros',           minNivel: 'membro'    as Nivel, viewOnly: true  },
   { to: '/configuracoes',   icon: Settings,         label: 'Configurações',     minNivel: 'moderador' as Nivel, viewOnly: false },
 ]
