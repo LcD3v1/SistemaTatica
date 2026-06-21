@@ -285,7 +285,7 @@ export default function MembrosPage() {
                   <tr className="border-b border-bdr">
                     {[
                       canEdit ? '⠿' : '',
-                      'Badge', 'Passaporte', 'Nome', 'Patente NPD',
+                      'Badge', 'Passaporte', 'Nome', 'Patente PMC',
                       'Cargo Interno', 'Status', 'Entrada', 'Promoção', 'Adv.',
                       canEdit ? '' : '',
                     ].map((h, i) => (
@@ -336,7 +336,7 @@ export default function MembrosPage() {
             <input {...register('policial', { required: true })} className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt" />
           </div>
           <div>
-            <label className="font-mono text-xs text-txt2 tracking-wider block mb-1">PATENTE NPD</label>
+            <label className="font-mono text-xs text-txt2 tracking-wider block mb-1">PATENTE PMC</label>
             <select {...register('patenteNPD')} className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt">
               <option value="">—</option>
               {patentes.map(p => <option key={p} value={p}>{p}</option>)}

@@ -63,7 +63,21 @@ export const membroSchema = z.object({
   adv3:           z.boolean().default(false),
 })
 
-export const membroUpdateSchema = membroSchema.partial()
+export const membroUpdateSchema = z.object({
+  badge:          safeStrOpt(20).optional(),
+  passaporte:     safeStrOpt(20).optional(),
+  policial:       safeStr(1, 100).optional(),
+  patenteNPD:     safeStrOpt(50).optional(),
+  patenteInterna: safeStrOpt(50).optional(),
+  status:         z.enum(['Ativo', 'Inativo', 'Ausência']).optional(),
+  entrada:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  promocao:       z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  adv1:           z.boolean().optional(),
+  adv2:           z.boolean().optional(),
+  adv3:           z.boolean().optional(),
+}).refine(body => Object.keys(body).filter(k => body[k as keyof typeof body] !== undefined).length > 0, {
+  message: 'Nenhum campo fornecido',
+})
 
 export const acaoSchema = z.object({
   data:         z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
