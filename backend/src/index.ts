@@ -78,8 +78,8 @@ if (existsSync(frontendDist)) {
 const PORT = parseInt(process.env.PORT || '3001', 10)
 
 ensureDefaultAdmin().then(() => {
-  app.listen(PORT, () => {
-    console.log(`[SWAT] Sistema rodando em http://localhost:${PORT}`)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SWAT] Sistema rodando em http://0.0.0.0:${PORT}`)
     console.log(`[SWAT] Ambiente: ${PROD ? 'produção' : 'desenvolvimento'}`)
   })
 }).catch(err => {
