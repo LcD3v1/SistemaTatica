@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus, X, Send, UserX } from 'lucide-react'
+import { Plus, X, Send, UserX, Shield } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useCreateAcao } from '@/hooks/useAcoes'
 import { useQrus } from '@/hooks/useConfig'
@@ -26,7 +26,7 @@ interface ExtraParticipante {
 const RESULTADO_OPTIONS: { value: ResultadoAcao; color: string }[] = [
   { value: 'Vitória',      color: 'border-green text-green bg-green/10'   },
   { value: 'Derrota',      color: 'border-red text-red bg-red/10'         },
-  { value: 'Participação', color: 'border-blue text-blue bg-blue/10'       },
+  { value: 'Empate',       color: 'border-blue text-blue bg-blue/10'       },
 ]
 
 export default function RegistrarAcaoPage() {
@@ -35,6 +35,9 @@ export default function RegistrarAcaoPage() {
   const { data: qrus, isLoading: qrusLoading } = useQrus()
   const { data: membros, isLoading: membrosLoading } = useMembros()
   const createAcao = useCreateAcao()
+
+  const [comandante, setComandante] = useState('')
+  const [showComandanteDropdown, setShowComandanteDropdown] = useState(false)
 
   const [selectedMembros, setSelectedMembros] = useState<Array<{ memberId: number; patenteUnidade: string }>>([])
   const [membroSearch, setMembroSearch] = useState('')
@@ -51,6 +54,13 @@ export default function RegistrarAcaoPage() {
   })
 
   const resultado = watch('resultado')
+
+  const filteredComandanteMembros = (membros ?? []).filter((m: Membro) =>
+    comandante !== '' && (
+      m.policial.toLowerCase().includes(comandante.toLowerCase()) ||
+      m.badge.toLowerCase().includes(comandante.toLowerCase())
+    )
+  )
 
   const filteredMembros = (membros ?? []).filter((m: Membro) =>
     !selectedMembros.some(s => s.memberId === m.id) &&
@@ -86,6 +96,7 @@ export default function RegistrarAcaoPage() {
         data: data.data,
         qru: data.qru,
         resultado: data.resultado,
+        comandante: comandante.trim() || undefined,
         participants: selectedMembros,
         participantesExtras: participantesExtras.map(e => ({
           nome: e.nome,
@@ -155,6 +166,42 @@ export default function RegistrarAcaoPage() {
                   </motion.button>
                 ))}
               </div>
+            </div>
+
+            {/* Comandante */}
+            <div>
+              <label className="font-mono text-xs text-txt2 tracking-wider block mb-2">
+                COMANDANTE
+              </label>
+              <div className="relative">
+                <input
+                  value={comandante}
+                  onChange={e => { setComandante(e.target.value); setShowComandanteDropdown(true) }}
+                  onBlur={() => setTimeout(() => setShowComandanteDropdown(false), 150)}
+                  onFocus={() => setShowComandanteDropdown(true)}
+                  placeholder="Buscar membro ou digitar nome do comandante..."
+                  className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt placeholder-txt3"
+                />
+                {showComandanteDropdown && filteredComandanteMembros.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-card border border-bdr rounded-b-lg shadow-xl max-h-48 overflow-y-auto">
+                    {filteredComandanteMembros.slice(0, 8).map((m: Membro) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onMouseDown={() => { setComandante(m.policial); setShowComandanteDropdown(false) }}
+                        className="w-full text-left px-3 py-2 text-xs font-mono text-txt2 hover:bg-bdr hover:text-txt transition-colors flex items-center gap-2"
+                      >
+                        <Shield size={12} className="text-gold" />
+                        <span>{m.policial}</span>
+                        <span className="text-txt3 ml-auto">{m.patenteInterna || m.patenteNPD}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="font-mono text-[10px] text-txt3 mt-1.5">
+                Selecione um membro da unidade ou digite o nome do comandante externo (opcional)
+              </p>
             </div>
 
             {/* Participantes da Unidade */}

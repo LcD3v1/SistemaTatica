@@ -99,16 +99,16 @@ export default function EstatisticasPage() {
       const total = qAcoes.length
       const vitorias = qAcoes.filter(a => a.resultado === 'Vitória').length
       const derrotas = qAcoes.filter(a => a.resultado === 'Derrota').length
-      const participacoes = qAcoes.filter(a => a.resultado === 'Participação').length
+      const empates = qAcoes.filter(a => a.resultado === 'Empate').length
       return {
         qru: q,
         total,
         Vitórias: vitorias,
         Derrotas: derrotas,
-        Participações: participacoes,
+        Empates: empates,
         vitorias,
         derrotas,
-        participacoes,
+        empates,
         winRate: total > 0 ? Math.round((vitorias / total) * 100) : 0,
       }
     }).filter(q => q.total > 0)
@@ -123,7 +123,7 @@ export default function EstatisticasPage() {
     const totalAll = acoes.length
     const vitAll = acoes.filter(a => a.resultado === 'Vitória').length
     const derAll = acoes.filter(a => a.resultado === 'Derrota').length
-    const parAll = acoes.filter(a => a.resultado === 'Participação').length
+    const empAll = acoes.filter(a => a.resultado === 'Empate').length
     const wrAll  = calcWinRate(acoes)
     const ativos = (membros ?? []).filter((m: Membro) => m.status === 'Ativo').length
     const comAdv = (membros ?? []).filter((m: Membro) => m.adv1 || m.adv2 || m.adv3).length
@@ -131,7 +131,7 @@ export default function EstatisticasPage() {
     const total = filteredAcoes.length
     const vitorias = filteredAcoes.filter(a => a.resultado === 'Vitória').length
     const derrotas = filteredAcoes.filter(a => a.resultado === 'Derrota').length
-    const participacoes = filteredAcoes.filter(a => a.resultado === 'Participação').length
+    const empates = filteredAcoes.filter(a => a.resultado === 'Empate').length
     const winRate = total > 0 ? ((vitorias / total) * 100).toFixed(1) : '0.0'
     const periodText = fromDate
       ? `${formatDateBR(fromDate)} a ${formatDateBR(toDate)}`
@@ -173,8 +173,8 @@ export default function EstatisticasPage() {
     y += 6
     autoTable(doc, {
       startY: y,
-      head: [['Total de Acoes', 'Vitorias', 'Derrotas', 'Participacoes', 'Win Rate', 'Membros Ativos', 'Com Advertencias']],
-      body: [[totalAll, vitAll, derAll, parAll, `${wrAll}%`, ativos, comAdv]],
+      head: [['Total de Acoes', 'Vitorias', 'Derrotas', 'Empates', 'Win Rate', 'Membros Ativos', 'Com Advertencias']],
+      body: [[totalAll, vitAll, derAll, empAll, `${wrAll}%`, ativos, comAdv]],
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
       bodyStyles: { fontSize: 8, halign: 'center' },
       theme: 'grid',
@@ -212,9 +212,9 @@ export default function EstatisticasPage() {
     y += 6
     autoTable(doc, {
       startY: y,
-      head: [['QRU', 'Total', 'Vitorias', 'Derrotas', 'Part.', 'Win Rate']],
+      head: [['QRU', 'Total', 'Vitorias', 'Derrotas', 'Empates', 'Win Rate']],
       body: qruExtData.length > 0
-        ? qruExtData.map(q => [n(q.qru), q.total, q.vitorias, q.derrotas, q.participacoes, `${q.winRate}%`])
+        ? qruExtData.map(q => [n(q.qru), q.total, q.vitorias, q.derrotas, q.empates, `${q.winRate}%`])
         : [['Sem dados no periodo selecionado', '', '', '', '', '']],
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
       bodyStyles: { fontSize: 8 },
@@ -311,7 +311,7 @@ export default function EstatisticasPage() {
                   <Legend formatter={v => <span className="font-mono text-[10px] text-txt2">{v}</span>} />
                   <Bar dataKey="Vitórias" stackId="a" fill="#27ae60" />
                   <Bar dataKey="Derrotas" stackId="a" fill="#c0392b" />
-                  <Bar dataKey="Participações" stackId="a" fill="#2980b9" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Empates" stackId="a" fill="#2980b9" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -396,7 +396,7 @@ export default function EstatisticasPage() {
                     <td className="px-4 py-3 font-mono text-xs text-txt2">{q.total}</td>
                     <td className="px-4 py-3 font-mono text-xs text-green">{q.vitorias}</td>
                     <td className="px-4 py-3 font-mono text-xs text-red">{q.derrotas}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-blue">{q.participacoes}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-blue">{q.empates}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-bdrg overflow-hidden flex">

@@ -1,6 +1,6 @@
 export type Nivel = 'admin' | 'moderador' | 'membro' | 'view_only'
 export type StatusMembro = 'Ativo' | 'Inativo' | 'Ausência'
-export type ResultadoAcao = 'Vitória' | 'Derrota' | 'Participação'
+export type ResultadoAcao = 'Vitória' | 'Derrota' | 'Empate'
 export type ResultadoRecruita = 'Aprovado' | 'Reprovado'
 
 export interface Membro {
@@ -36,6 +36,7 @@ export interface Acao {
   resultado: ResultadoAcao
   participants: ParticipanteAcao[]
   participantesExtras?: ParticipanteExterno[]
+  comandante?: string
 }
 
 export interface Conta {

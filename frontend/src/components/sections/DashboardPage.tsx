@@ -25,7 +25,7 @@ const CONTAINER_VARIANTS = {
 const RESULTADO_COLORS: Record<string, string> = {
   'Vitória':      '#27ae60',
   'Derrota':      '#c0392b',
-  'Participação': '#2980b9',
+  'Empate': '#2980b9',
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -88,11 +88,11 @@ export default function DashboardPage() {
   const pieData = useMemo(() => {
     const v = acoes.filter(a => a.resultado === 'Vitória').length
     const d = acoes.filter(a => a.resultado === 'Derrota').length
-    const p = acoes.filter(a => a.resultado === 'Participação').length
+    const p = acoes.filter(a => a.resultado === 'Empate').length
     return [
       { name: 'Vitórias', value: v, color: '#27ae60' },
       { name: 'Derrotas', value: d, color: '#c0392b' },
-      { name: 'Participações', value: p, color: '#2980b9' },
+      { name: 'Empates', value: p, color: '#2980b9' },
     ].filter(x => x.value > 0)
   }, [acoes])
 

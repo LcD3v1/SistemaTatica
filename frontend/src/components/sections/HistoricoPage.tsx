@@ -17,7 +17,7 @@ import { downloadBlob } from '@/lib/utils'
 const RESULTADO_COLORS: Record<string, string> = {
   'Vitória':      '#27ae60',
   'Derrota':      '#c0392b',
-  'Participação': '#2980b9',
+  'Empate': '#2980b9',
 }
 
 const PAGE_SIZE = 20
@@ -94,7 +94,7 @@ export default function HistoricoPage() {
             <option value="">Todos Resultados</option>
             <option value="Vitória">Vitória</option>
             <option value="Derrota">Derrota</option>
-            <option value="Participação">Participação</option>
+            <option value="Empate">Empate</option>
           </select>
 
           <span className="font-mono text-xs text-txt2 ml-auto">{total} registros</span>
@@ -114,7 +114,7 @@ export default function HistoricoPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-bdr">
-                {['#', 'Data', 'QRU', 'Resultado', 'Participantes', ''].map(h => (
+                {['#', 'Data', 'QRU', 'Resultado', 'Comandante', 'Participantes', ''].map(h => (
                   <th key={h} className="text-left font-mono text-xs text-txt3 tracking-wider px-4 py-3">{h}</th>
                 ))}
               </tr>
@@ -123,7 +123,7 @@ export default function HistoricoPage() {
               <AnimatePresence>
                 {acoes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 font-mono text-xs text-txt3">
+                    <td colSpan={7} className="text-center py-12 font-mono text-xs text-txt3">
                       Nenhuma ação encontrada
                     </td>
                   </tr>
@@ -149,6 +149,16 @@ export default function HistoricoPage() {
                       >
                         {acao.resultado}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-txt2">
+                      {acao.comandante ? (
+                        <span className="flex items-center gap-1">
+                          <span className="text-gold">&#9650;</span>
+                          {acao.comandante}
+                        </span>
+                      ) : (
+                        <span className="text-txt3">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-txt2">
                       {(() => {

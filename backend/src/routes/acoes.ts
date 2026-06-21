@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { requireAuth } from '../middleware/auth'
-import { modOrAdmin } from '../middleware/roles'
+import { modOrAdmin, noViewOnly } from '../middleware/roles'
 import { validateBody, acaoSchema } from '../middleware/validate'
 import { audit } from '../security/audit'
 import { readData, writeData } from '../data'
@@ -40,7 +40,7 @@ router.get('/', requireAuth, (req: Request, res: Response): void => {
   const data = readData()
   const { qru, resultado, page, limit } = req.query
 
-  const VALID_RESULTADOS = ['Vitória', 'Derrota', 'Participação']
+  const VALID_RESULTADOS = ['Vitória', 'Derrota', 'Empate']
   let acoes = [...data.acoes].sort((a, b) => b.id - a.id)
 
   if (qru && typeof qru === 'string') acoes = acoes.filter(a => a.qru === qru)
@@ -56,7 +56,7 @@ router.get('/', requireAuth, (req: Request, res: Response): void => {
   res.json({ acoes: paginated, total, page: pageNum, limit: limitNum })
 })
 
-router.post('/', requireAuth, modOrAdmin, validateBody(acaoSchema), (req: Request, res: Response): void => {
+router.post('/', requireAuth, noViewOnly, validateBody(acaoSchema), (req: Request, res: Response): void => {
   const body = req.body as Omit<Acao, 'id'>
   const data = readData()
 
@@ -75,6 +75,7 @@ router.post('/', requireAuth, modOrAdmin, validateBody(acaoSchema), (req: Reques
     resultado: body.resultado,
     participants: body.participants,
     participantesExtras: body.participantesExtras ?? [],
+    comandante: body.comandante,
   }
 
   data.acoes.push(novaAcao)

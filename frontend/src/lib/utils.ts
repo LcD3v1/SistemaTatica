@@ -7,7 +7,7 @@ export function formatDate(dateStr: string): string {
 }
 
 export function calcWinRate(acoes: Acao[]): number {
-  const relevantes = acoes.filter(a => a.resultado !== 'Participação')
+  const relevantes = acoes.filter(a => a.resultado !== 'Empate')
   if (relevantes.length === 0) return 0
   const vitorias = relevantes.filter(a => a.resultado === 'Vitória').length
   return Math.round((vitorias / relevantes.length) * 100)

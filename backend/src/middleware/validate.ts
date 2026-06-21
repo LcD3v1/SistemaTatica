@@ -82,7 +82,8 @@ export const membroUpdateSchema = z.object({
 export const acaoSchema = z.object({
   data:         z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
   qru:          safeStr(1, 50),
-  resultado:    z.enum(['Vitória', 'Derrota', 'Participação']),
+  resultado:    z.enum(['Vitória', 'Derrota', 'Empate']),
+  comandante:   z.string().max(100).optional(),
   participants: z.array(z.object({
     memberId:       z.number().int().positive(),
     patenteUnidade: safeStrOpt(50),
