@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar,
   XAxis, YAxis, Tooltip, Legend,
 } from 'recharts'
-import { Shield, Activity, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Shield, Activity, TrendingUp, AlertTriangle, Users, UserPlus } from 'lucide-react'
 import { useAllAcoes } from '@/hooks/useAcoes'
 import { useMembros } from '@/hooks/useMembros'
 import GlowCard from '@/components/ui/GlowCard'
@@ -88,15 +88,20 @@ export default function DashboardPage() {
     const comAdv = (membros ?? []).filter((m: Membro) => m.adv1 || m.adv2 || m.adv3).length
     const currentMonthKey = getMonthKey(new Date())
     const monthAcoes = acoes.filter(a => a.data.startsWith(currentMonthKey))
+    const semExternos = acoes.filter(a => (a.participantesExtras ?? []).length === 0)
+    const comExternos = acoes.filter(a => (a.participantesExtras ?? []).length > 0)
     const monthWinRate = calcWinRate(monthAcoes)
-    const generalWinRate = calcWinRate(acoes)
-    return { ativos, comAdv, monthWinRate, generalWinRate }
+    const tacticalWinRate = calcWinRate(semExternos)
+    const externalWinRate = calcWinRate(comExternos)
+    return { ativos, comAdv, monthWinRate, tacticalWinRate, externalWinRate }
   }, [membros, acoes])
 
   const pieData = useMemo(() => {
-    const v = acoes.filter(a => a.resultado === 'Vitória').length
-    const d = acoes.filter(a => a.resultado === 'Derrota').length
-    const p = acoes.filter(a => a.resultado === 'Empate').length
+    const currentMonthKey = getMonthKey(new Date())
+    const monthAcoes = acoes.filter(a => a.data.startsWith(currentMonthKey))
+    const v = monthAcoes.filter(a => a.resultado === 'Vitória').length
+    const d = monthAcoes.filter(a => a.resultado === 'Derrota').length
+    const p = monthAcoes.filter(a => a.resultado === 'Empate').length
     return [
       { name: 'Vitórias', value: v, color: '#27ae60' },
       { name: 'Derrotas', value: d, color: '#c0392b' },
@@ -167,11 +172,12 @@ export default function DashboardPage() {
         variants={CONTAINER_VARIANTS}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-4 gap-4"
+        className="grid grid-cols-5 gap-4"
       >
         <StatCard icon={Activity}       label="% DO MÊS"             value={stats.monthWinRate} color="#909090" suffix="%" />
         <StatCard icon={TrendingUp}     label="MEMBROS ATIVOS"       value={stats.ativos} color="#27ae60" />
-        <StatCard icon={Shield}         label="WIN RATE GERAL"       value={stats.generalWinRate} color="#2980b9" suffix="%" />
+        <StatCard icon={Users}          label="WIN RATE TÁTICA"      value={stats.tacticalWinRate} color="#2980b9" suffix="%" />
+        <StatCard icon={UserPlus}       label="WIN RATE EXTERNOS"    value={stats.externalWinRate} color="#aaaaaa" suffix="%" />
         <StatCard icon={AlertTriangle}  label="COM ADVERTÊNCIAS"     value={stats.comAdv} color="#c0392b" />
       </motion.div>
 
@@ -179,7 +185,7 @@ export default function DashboardPage() {
         {/* Gráfico de rosca */}
         <GlowCard>
           <div className="p-4">
-            <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">RESULTADOS GERAL</h3>
+            <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">RESULTADOS DO MÊS</h3>
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
