@@ -31,6 +31,10 @@ const RESULTADO_COLORS: Record<string, string> = {
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+function getMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 function StatCard({
   icon: Icon, label, value, color, suffix = '',
 }: {
@@ -65,7 +69,9 @@ const CustomTooltip = ({ active, payload, label }: {
     <div className="bg-card border border-bdr rounded p-2 text-xs font-mono">
       <p className="text-txt2 mb-1">{label}</p>
       {payload.map(p => (
-        <p key={p.name} style={{ color: p.fill }}>{p.name}: {p.value}</p>
+        <p key={p.name} style={{ color: p.fill }}>
+          {p.name}: {p.value}{p.name.includes('%') ? '%' : ''}
+        </p>
       ))}
     </div>
   )
@@ -80,9 +86,11 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     const ativos = (membros ?? []).filter((m: Membro) => m.status === 'Ativo').length
     const comAdv = (membros ?? []).filter((m: Membro) => m.adv1 || m.adv2 || m.adv3).length
-    const total = acoes.length
-    const winRate = calcWinRate(acoes)
-    return { ativos, comAdv, total, winRate }
+    const currentMonthKey = getMonthKey(new Date())
+    const monthAcoes = acoes.filter(a => a.data.startsWith(currentMonthKey))
+    const monthWinRate = calcWinRate(monthAcoes)
+    const generalWinRate = calcWinRate(acoes)
+    return { ativos, comAdv, monthWinRate, generalWinRate }
   }, [membros, acoes])
 
   const pieData = useMemo(() => {
@@ -101,9 +109,13 @@ export default function DashboardPage() {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const count = acoes.filter(a => a.data.startsWith(monthKey)).length
-      return { mes: MONTH_NAMES[d.getMonth()], ações: count }
+      const monthKey = getMonthKey(d)
+      const monthAcoes = acoes.filter(a => a.data.startsWith(monthKey))
+      return {
+        mes: MONTH_NAMES[d.getMonth()],
+        ações: monthAcoes.length,
+        'win rate %': calcWinRate(monthAcoes),
+      }
     })
   }, [acoes])
 
@@ -144,7 +156,7 @@ export default function DashboardPage() {
           <div className="inline-block bg-card border border-bdr rounded-lg px-6 py-2">
             <span className="font-mono text-xs text-txt2 mr-2">WIN RATE</span>
             <span className="font-orbitron text-3xl font-black text-gold">
-              <AnimatedCounter value={stats.winRate} suffix="%" />
+              <AnimatedCounter value={stats.monthWinRate} suffix="%" />
             </span>
           </div>
         </div>
@@ -157,9 +169,9 @@ export default function DashboardPage() {
         animate="visible"
         className="grid grid-cols-4 gap-4"
       >
-        <StatCard icon={Activity}       label="TOTAL DE AÇÕES"       value={stats.total}  color="#909090" />
+        <StatCard icon={Activity}       label="% DO MÊS"             value={stats.monthWinRate} color="#909090" suffix="%" />
         <StatCard icon={TrendingUp}     label="MEMBROS ATIVOS"       value={stats.ativos} color="#27ae60" />
-        <StatCard icon={Shield}         label="WIN RATE"             value={stats.winRate} color="#2980b9" suffix="%" />
+        <StatCard icon={Shield}         label="WIN RATE GERAL"       value={stats.generalWinRate} color="#2980b9" suffix="%" />
         <StatCard icon={AlertTriangle}  label="COM ADVERTÊNCIAS"     value={stats.comAdv} color="#c0392b" />
       </motion.div>
 
@@ -211,13 +223,18 @@ export default function DashboardPage() {
         {/* Gráfico de barras */}
         <GlowCard className="col-span-2">
           <div className="p-4">
-            <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">AÇÕES POR MÊS</h3>
+            <h3 className="font-orbitron text-xs text-txt2 tracking-wider mb-4">% POR MÊS</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barData}>
                 <XAxis dataKey="mes" tick={{ fill: '#787878', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-                <YAxis tick={{ fill: '#787878', fontSize: 10 }} allowDecimals={false} />
+                <YAxis
+                  tick={{ fill: '#787878', fontSize: 10 }}
+                  allowDecimals={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="ações" fill="#909090" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="win rate %" fill="#909090" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
