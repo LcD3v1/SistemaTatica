@@ -24,6 +24,13 @@ export function useDeleteQru() {
   })
 }
 
+export function useReorderQrus() {
+  return useMutation({
+    mutationFn: (qrus: string[]) => api.put('/config/qrus/reorder', { qrus }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['config', 'qrus'] }),
+  })
+}
+
 export function usePatentes() {
   return useQuery<string[]>({
     queryKey: ['config', 'patentes'],

@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
+  useSortable, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   Image, List, Briefcase, Radio, UserPlus, Users,
   Plus, Trash2,
 } from 'lucide-react'
 import {
-  useQrus, useAddQru, useDeleteQru,
+  useQrus, useAddQru, useDeleteQru, useReorderQrus,
   usePatentes, useAddPatente, useDeletePatente,
   useCargos, useAddCargo, useDeleteCargo,
   useLogo,
@@ -19,6 +28,7 @@ import HudButton from '@/components/ui/HudButton'
 import ModalOverlay from '@/components/ui/ModalOverlay'
 import LoadingHud from '@/components/ui/LoadingHud'
 import LogoUploader from '@/components/ui/LogoUploader'
+import DragHandle from '@/components/ui/DragHandle'
 import type { CategoriaRecrutamento, Nivel } from '@/types'
 
 const TABS = [
@@ -32,13 +42,75 @@ const TABS = [
 
 const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
 
+function SortableListItem({
+  item, canEdit, onDelete, canReorder,
+}: {
+  item: string
+  canEdit: boolean
+  onDelete: (v: string) => void
+  canReorder: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.55 : 1,
+      }}
+      className="flex items-center gap-2 px-3 py-2 bg-card2 border border-bdr rounded group"
+    >
+      {canEdit && canReorder && (
+        <DragHandle
+          listeners={listeners as unknown as Record<string, unknown>}
+          attributes={attributes as unknown as Record<string, unknown>}
+        />
+      )}
+      <span className="font-mono text-xs text-txt flex-1">{item}</span>
+      {canEdit && (
+        <button onClick={() => onDelete(item)} className="opacity-0 group-hover:opacity-100 text-txt3 hover:text-red transition-all">
+          <Trash2 size={12} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 function ListEditor({
-  items, onAdd, onDelete, placeholder, canEdit,
+  items, onAdd, onDelete, onReorder, placeholder, canEdit,
 }: {
   items: string[]; onAdd: (v: string) => void; onDelete: (v: string) => void
+  onReorder?: (items: string[]) => void
   placeholder: string; canEdit: boolean
 }) {
   const [val, setVal] = useState('')
+  const [localItems, setLocalItems] = useState(items)
+  const canReorder = Boolean(onReorder && canEdit)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  useEffect(() => {
+    setLocalItems(items)
+  }, [items])
+
+  function handleDragEnd(event: DragEndEvent) {
+    if (!onReorder) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = localItems.indexOf(String(active.id))
+    const newIndex = localItems.indexOf(String(over.id))
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const next = arrayMove(localItems, oldIndex, newIndex)
+    setLocalItems(next)
+    onReorder(next)
+  }
+
   return (
     <div className="space-y-3">
       {canEdit && (
@@ -56,17 +128,35 @@ function ListEditor({
         </div>
       )}
       <div className="space-y-1 max-h-60 overflow-y-auto">
-        {items.map(item => (
-          <div key={item} className="flex items-center justify-between px-3 py-2 bg-card2 border border-bdr rounded group">
-            <span className="font-mono text-xs text-txt">{item}</span>
-            {canEdit && (
-              <button onClick={() => onDelete(item)} className="opacity-0 group-hover:opacity-100 text-txt3 hover:text-red transition-all">
-                <Trash2 size={12} />
-              </button>
-            )}
-          </div>
-        ))}
-        {items.length === 0 && (
+        {canReorder ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={localItems} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {localItems.map(item => (
+                  <SortableListItem
+                    key={item}
+                    item={item}
+                    canEdit={canEdit}
+                    canReorder={canReorder}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          localItems.map(item => (
+            <div key={item} className="flex items-center justify-between px-3 py-2 bg-card2 border border-bdr rounded group">
+              <span className="font-mono text-xs text-txt">{item}</span>
+              {canEdit && (
+                <button onClick={() => onDelete(item)} className="opacity-0 group-hover:opacity-100 text-txt3 hover:text-red transition-all">
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          ))
+        )}
+        {localItems.length === 0 && (
           <p className="font-mono text-xs text-txt3 text-center py-4">Nenhum item cadastrado</p>
         )}
       </div>
@@ -85,6 +175,7 @@ export default function ConfiguracoesPage() {
   const { data: qrus = [] } = useQrus()
   const addQru = useAddQru()
   const deleteQru = useDeleteQru()
+  const reorderQrus = useReorderQrus()
 
   const { data: patentes = [] } = usePatentes()
   const addPatente = useAddPatente()
@@ -197,6 +288,7 @@ export default function ConfiguracoesPage() {
                 items={qrus}
                 onAdd={v => addQru.mutate(v)}
                 onDelete={v => deleteQru.mutate(v)}
+                onReorder={items => reorderQrus.mutate(items)}
                 placeholder="Novo QRU..."
                 canEdit={true}
               />

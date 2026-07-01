@@ -144,3 +144,7 @@ export const reorderSchema = z.object({
 export const reorderPatenteSchema = z.object({
   patentes: z.array(z.string().max(50)),
 })
+
+export const reorderQruSchema = z.object({
+  qrus: z.array(z.string().min(1).max(50)),
+})

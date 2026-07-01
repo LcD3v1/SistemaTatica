@@ -8,7 +8,7 @@ import {
   qruSchema, patenteSchema, cargoSchema,
   createContaSchema, updateContaSchema,
   logoSchema, recCfgSchema,
-  reorderPatenteSchema,
+  reorderPatenteSchema, reorderQruSchema,
 } from '../middleware/validate'
 import { audit, readAuditLog } from '../security/audit'
 import { readData, writeData } from '../data'
@@ -28,6 +28,24 @@ router.post('/qrus', requireAuth, modOrAdmin, validateBody(qruSchema), (req: Req
   writeData(data)
   audit('CONFIG_UPDATED', req, `QRU criado: ${nome}`)
   res.status(201).json(data.qrus)
+})
+
+router.put('/qrus/reorder', requireAuth, modOrAdmin, validateBody(reorderQruSchema), (req: Request, res: Response): void => {
+  const { qrus } = req.body as { qrus: string[] }
+  const data = readData()
+  const current = new Set(data.qrus)
+  const next = qrus.map(q => String(q).slice(0, 50))
+  const uniqueNext = new Set(next)
+
+  if (next.length !== data.qrus.length || uniqueNext.size !== next.length || !next.every(q => current.has(q))) {
+    res.status(400).json({ error: 'Lista de QRUs inválida para reordenação' })
+    return
+  }
+
+  data.qrus = next
+  writeData(data)
+  audit('CONFIG_UPDATED', req, 'QRUs reordenados')
+  res.json(data.qrus)
 })
 
 router.delete('/qrus/:nome', requireAuth, modOrAdmin, (req: Request, res: Response): void => {
