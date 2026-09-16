@@ -5,6 +5,7 @@ import { Eye, EyeOff, Lock, User, X, Trophy, Users, UserPlus, Send } from 'lucid
 import { useForm } from 'react-hook-form'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
+import Brand from '@/components/ui/Brand'
 import MusicPlayer from '@/components/ui/MusicPlayer'
 import PublicOverlay from '@/components/sections/PublicOverlay'
 import type { AuthUser } from '@/types'
@@ -106,6 +107,7 @@ export default function LoginPage() {
       {/* ── Top bar ─────────────────────────────────────────────── */}
       <header className="relative z-30 flex items-center justify-between px-8 lg:px-14 pt-6">
         <div className="flex items-center gap-3">
+          <Brand size={44} className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]" />
           <div className="leading-tight">
             <p className="wordmark text-sm text-white tracking-[0.14em]">TÁTICA</p>
             <p className="font-mono text-[8px] text-white/40 tracking-[0.2em]">PMC</p>
@@ -267,13 +269,13 @@ export default function LoginPage() {
       </main>
 
       {/* ── Rodapé ──────────────────────────────────────────────── */}
-      <footer className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-end px-8 lg:px-14 py-6">
+      <footer className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-start px-8 lg:px-14 py-6">
         <p className="font-mono text-[9px] text-white/30 tracking-[0.25em] uppercase">
           Desenvolvido por <span className="text-gold3/80">LC Dev</span>
         </p>
       </footer>
 
-      {/* ── Player de música (canto inferior esquerdo) ──────────── */}
+      {/* ── Player de música (só no login) ──────────────────────── */}
       <MusicPlayer />
 
       {/* ── Overlay Ranking/Membros ─────────────────────────────── */}
