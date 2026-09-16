@@ -70,6 +70,31 @@ export default function MusicPlayer() {
     if (playing) a.play().catch(() => setPlaying(false))
   }, [idx]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Autoplay ao abrir o site: tenta tocar assim que a playlist carrega.
+  // Se o navegador bloquear (exige gesto), começa na 1ª interação do usuário
+  // (clique/tecla em qualquer lugar) — sem precisar clicar no botão play.
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (tracks.length === 0 || autoStarted.current) return
+    const start = () => {
+      const a = audioRef.current
+      if (!a || autoStarted.current) return
+      a.play().then(() => {
+        autoStarted.current = true
+        setPlaying(true)
+        document.removeEventListener('pointerdown', start)
+        document.removeEventListener('keydown', start)
+      }).catch(() => { /* bloqueado — espera a próxima interação */ })
+    }
+    start() // tentativa imediata (funciona se o navegador permitir)
+    document.addEventListener('pointerdown', start)
+    document.addEventListener('keydown', start)
+    return () => {
+      document.removeEventListener('pointerdown', start)
+      document.removeEventListener('keydown', start)
+    }
+  }, [tracks.length])
+
   const toggle = useCallback(() => {
     const a = audioRef.current
     if (!a) return

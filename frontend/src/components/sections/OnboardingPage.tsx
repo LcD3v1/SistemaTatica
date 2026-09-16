@@ -62,7 +62,7 @@ export default function OnboardingPage() {
 
           <Field label="NOME DO POLICIAL" icon={<User size={14} />} error={errors.policial?.message}>
             <input {...register('policial', { required: 'Nome obrigatório' })}
-              className="fld" placeholder="Ex.: Peter Wolf" />
+              className="fld" placeholder="Ex.: Dillon Zarkov" />
           </Field>
 
           <div className="grid grid-cols-2 gap-4">

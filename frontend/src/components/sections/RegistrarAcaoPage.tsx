@@ -16,7 +16,7 @@ function buildBoletimModelo(a: Acao) {
   const dataBR = a.data.split('-').reverse().join('/')
   return [
     'Polícia Militar Capital',
-    '[Oficial responsável — ex: Ofc. Peter Wolf 216F]',
+    '[Oficial responsável — ex: 2 SGT. Dillon Zarkov 216F]',
     '/'.repeat(110),
     '',
     `📄 Relato da ocorrência: Ocorrência de ${a.qru}${a.local ? ` na região de ${a.local}` : ''} registrada em ${dataBR}. [Descreva os detalhes da ação...]`,

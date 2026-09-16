@@ -118,7 +118,7 @@ export default function GerarAnuncioPage() {
               </div>
               <div>
                 <label className={labelCls}>Assinatura do perfil *</label>
-                <input value={assinatura} onChange={e => setAssinatura(e.target.value)} placeholder="SO. Peter Wolf" className={inputCls} />
+                <input value={assinatura} onChange={e => setAssinatura(e.target.value)} placeholder="2 SGT. Dillon Zarkov" className={inputCls} />
               </div>
             </div>
 

@@ -219,7 +219,7 @@ export default function ProfilePage() {
             {membro && editMembro ? (
               <div className="space-y-3">
                 {([
-                  ['policial', 'Nome do policial', 'Ex.: Peter Wolf'],
+                  ['policial', 'Nome do policial', 'Ex.: Dillon Zarkov'],
                   ['badge', 'Badge', 'Ex.: 4521'],
                   ['passaporte', 'Passaporte / ID', 'Ex.: 10293'],
                   ['patenteNPD', 'Patente NPD', 'Ex.: Soldado'],

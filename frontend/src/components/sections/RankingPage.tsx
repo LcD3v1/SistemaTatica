@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Crown, Medal, Award, Target, Flame, TrendingUp } from 'lucide-react'
+import { Trophy, Crown, Medal, Award, Target, Flame, TrendingUp, Star, Shield, Hash, CalendarDays } from 'lucide-react'
 import { useAllAcoes } from '@/hooks/useAcoes'
 import { useMembros } from '@/hooks/useMembros'
 import { usePublicPerfis } from '@/hooks/usePublic'
@@ -28,14 +28,31 @@ function isoDaysAgo(n: number) {
   const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
+function fmtDate(d?: string) {
+  if (!d) return '—'
+  const [y, m, day] = d.split('-')
+  return day && m && y ? `${day}/${m}/${y}` : d
+}
 
 interface Row {
   id: number; nome: string; patente: string
   sucedidas: number; derrotas: number; total: number; winRate: number
-  topQru: string | null
+  topQru: string | null; topQruCount: number
+  badge: string; passaporte: string; entrada: string
 }
 
 const MEDAL_LABEL = ['Campeão', 'Vice-líder', 'Pódio']
+
+function Detail({ icon, label, value, valueCls = 'text-txt' }: {
+  icon: React.ReactNode; label: string; value: string; valueCls?: string
+}) {
+  return (
+    <div className="px-4 py-[7px] flex items-center justify-between">
+      <span className="flex items-center gap-1.5 text-txt2">{icon} {label}</span>
+      <span className={`font-medium truncate max-w-[130px] ${valueCls}`}>{value}</span>
+    </div>
+  )
+}
 
 /** Card de perfil que aparece ao passar o mouse sobre um membro do ranking. */
 function HoverCard({ row, place, avatar, banner, x, y }: {
@@ -44,7 +61,7 @@ function HoverCard({ row, place, avatar, banner, x, y }: {
   const bn = resolveBanner(banner ?? null, place + 1)
   const CARD_W = 288
   const left = Math.round(Math.min(x, (typeof window !== 'undefined' ? window.innerWidth : 1400) - CARD_W - 14))
-  const top = Math.round(Math.min(Math.max(12, y), (typeof window !== 'undefined' ? window.innerHeight : 900) - 340))
+  const top = Math.round(Math.min(Math.max(12, y), (typeof window !== 'undefined' ? window.innerHeight : 900) - 420))
   const medalCls = place < 3 ? { color: MEDALS[place] } : { color: 'var(--txt2)' }
   return (
     <motion.div
@@ -73,7 +90,7 @@ function HoverCard({ row, place, avatar, banner, x, y }: {
             {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : initials(row.nome)}
           </div>
           <p className="mt-2 text-sm font-semibold text-txt truncate">{row.nome}</p>
-          <p className="text-[11px] text-txt2 truncate">{row.patente || '—'}</p>
+          <p className="text-[10px] text-txt2 font-mono tracking-wider uppercase truncate">{row.patente || '—'}</p>
         </div>
 
         {/* Métricas */}
@@ -92,10 +109,13 @@ function HoverCard({ row, place, avatar, banner, x, y }: {
           </div>
         </div>
 
-        {/* Extras */}
-        <div className="px-4 py-2.5 flex items-center justify-between text-[11px] border-t border-bdr">
-          <span className="flex items-center gap-1 text-txt2"><Target size={11} className="text-gold3" /> Melhor QRU</span>
-          <span className="text-txt font-medium truncate max-w-[150px]">{row.topQru || '—'}</span>
+        {/* Detalhes */}
+        <div className="border-t border-bdr divide-y divide-bdr/60 text-[11px]">
+          <Detail icon={<Star size={12} className="text-gold3" />} label="QRU favorita" value={row.topQru ? `${row.topQru} (${row.topQruCount})` : '—'} valueCls="text-gold3" />
+          <Detail icon={<TrendingUp size={12} className="text-green" />} label="Vitórias / Derrotas" value={`${row.sucedidas} / ${row.derrotas}`} />
+          <Detail icon={<Shield size={12} className="text-txt2" />} label="Badge" value={row.badge || '—'} />
+          <Detail icon={<Hash size={12} className="text-txt2" />} label="Passaporte" value={row.passaporte || '—'} />
+          <Detail icon={<CalendarDays size={12} className="text-txt2" />} label="Entrada" value={fmtDate(row.entrada)} />
         </div>
       </div>
     </motion.div>
@@ -131,12 +151,13 @@ export default function RankingPage() {
       const derrotas = mine.filter(a => a.resultado === 'Derrota').length
       const qruCount = new Map<string, number>()
       wins.forEach(a => qruCount.set(a.qru, (qruCount.get(a.qru) ?? 0) + 1))
-      const topQru = [...qruCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+      const topEntry = [...qruCount.entries()].sort((a, b) => b[1] - a[1])[0]
       return {
         id: m.id, nome: m.policial, patente: m.patenteInterna || m.patenteNPD,
         sucedidas, derrotas, total: mine.length,
         winRate: mine.length ? Math.round((sucedidas / mine.length) * 100) : 0,
-        topQru,
+        topQru: topEntry?.[0] ?? null, topQruCount: topEntry?.[1] ?? 0,
+        badge: m.badge, passaporte: m.passaporte, entrada: m.entrada,
       }
     }).filter(r => r.sucedidas > 0)
       .sort((a, b) => b.sucedidas - a.sucedidas || b.winRate - a.winRate)

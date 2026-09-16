@@ -180,7 +180,7 @@ export default function LoginPage() {
                         <label className="font-mono text-[10px] text-white/50 tracking-wider">NOME / POLICIAL</label>
                         <div className="relative">
                           <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                          <input {...solForm.register('nome', { required: 'Nome obrigatório' })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 pl-9 text-sm text-white placeholder-white/25 outline-none focus:border-gold transition-colors" placeholder="Ex.: Peter Wolf" />
+                          <input {...solForm.register('nome', { required: 'Nome obrigatório' })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 pl-9 text-sm text-white placeholder-white/25 outline-none focus:border-gold transition-colors" placeholder="Ex.: Dillon Zarkov" />
                         </div>
                         {solForm.formState.errors.nome && <p className="text-red text-[11px] font-mono">{solForm.formState.errors.nome.message}</p>}
                       </div>
