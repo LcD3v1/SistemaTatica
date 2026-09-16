@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'swat-auth',
+      name: 'fast-auth',
       storage: createJSONStorage(() => sessionStorage),
     }
   )

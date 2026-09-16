@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, ChevronRight, Users, Lock, Unlock } from 'lucide-react'
 import { useRecrutos, useCreateRecruta, useDeleteRecruta } from '@/hooks/useRecrutos'
 import { useAuthStore } from '@/store/authStore'
+import { usePerms } from '@/hooks/usePerms'
 import { useUIStore } from '@/store/uiStore'
 import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
@@ -24,7 +25,8 @@ export default function RecrutamentoPage() {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10))
   const [observacoes, setObservacoes] = useState('')
 
-  const canEdit = user?.nivel === 'admin' || user?.nivel === 'moderador'
+  const { canEdit: canArea } = usePerms()
+  const canEdit = canArea('recrutamento')
 
   async function handleCreate() {
     if (!nome.trim()) return
@@ -127,7 +129,7 @@ export default function RecrutamentoPage() {
                       {r.status === 'fechado' && r.resultado && (
                         <span
                           className="font-orbitron text-xs font-bold"
-                          style={{ color: r.resultado === 'Aprovado' ? '#27ae60' : '#c0392b' }}
+                          style={{ color: r.resultado === 'Aprovado' ? '#27ae60' : '#b8433a' }}
                         >
                           {r.resultado === 'Aprovado' ? '✓ APROVADO' : '✕ REPROVADO'}
                         </span>

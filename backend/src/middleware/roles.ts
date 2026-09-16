@@ -1,34 +1,31 @@
 import { Request, Response, NextFunction } from 'express'
-import { Nivel } from '../types'
+import { readData } from '../data'
+import { resolvePermissoes, isAdminConta } from '../permAreas'
 
-const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
-
-export function requireRole(...minRoles: Nivel[]) {
+/** Exige que a conta tenha permissão numa área ('ver' ou 'editar'). Cargo admin passa sempre. */
+export function requireArea(area: string, mode: 'ver' | 'editar' = 'editar') {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = req.user
-    if (!user) {
-      res.status(401).json({ error: 'Não autenticado' })
-      return
-    }
-    const userRank = RANK[user.nivel] ?? -1
-    const minRank = Math.min(...minRoles.map(r => RANK[r]))
-    if (userRank >= minRank) {
-      next()
-      return
-    }
-    res.status(403).json({ error: 'Acesso negado — nível insuficiente' })
+    if (!user) { res.status(401).json({ error: 'Não autenticado' }); return }
+    const data = readData()
+    const conta = data.contas.find(c => c.id === user.contaId)
+    if (!conta) { res.status(401).json({ error: 'Não autenticado' }); return }
+    if (isAdminConta(conta, data.cargosPermissao)) { next(); return }
+    const perms = resolvePermissoes(conta, data.cargosPermissao)
+    if (perms[area]?.[mode]) { next(); return }
+    res.status(403).json({ error: 'Acesso negado — sem permissão para esta ação' })
   }
 }
 
-// Bloqueia view_only explicitamente em qualquer rota de escrita
-export function noViewOnly(req: Request, res: Response, next: NextFunction): void {
-  if (req.user?.nivel === 'view_only') {
-    res.status(403).json({ error: 'Acesso negado — conta somente leitura' })
+/** Exige cargo com flag admin (gerenciar contas, cargos, solicitações, backup/restore). */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const user = req.user
+  if (!user) { res.status(401).json({ error: 'Não autenticado' }); return }
+  const data = readData()
+  const conta = data.contas.find(c => c.id === user.contaId)
+  if (!conta || !isAdminConta(conta, data.cargosPermissao)) {
+    res.status(403).json({ error: 'Acesso negado — requer cargo administrador' })
     return
   }
   next()
 }
-
-export const modOrAdmin = requireRole('moderador')
-export const adminOnly  = requireRole('admin')
-export const anyAuth    = requireRole('membro')

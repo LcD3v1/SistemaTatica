@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { requireAuth } from '../middleware/auth'
-import { modOrAdmin, adminOnly } from '../middleware/roles'
+import { requireArea } from '../middleware/roles'
 import { validateBody, membroSchema, membroUpdateSchema, reorderSchema } from '../middleware/validate'
 import { audit } from '../security/audit'
 import { readData, writeData } from '../data'
@@ -24,7 +24,7 @@ router.get('/', requireAuth, (_req, res) => {
   res.json(membros)
 })
 
-router.post('/', requireAuth, modOrAdmin, validateBody(membroSchema), (req: Request, res: Response): void => {
+router.post('/', requireAuth, requireArea('membros'), validateBody(membroSchema), (req: Request, res: Response): void => {
   const data = readData()
   const body = req.body as Omit<Membro, 'id'>
 
@@ -40,7 +40,8 @@ router.post('/', requireAuth, modOrAdmin, validateBody(membroSchema), (req: Requ
     promocao:       body.promocao ?? new Date().toISOString().slice(0, 10),
     adv1: body.adv1,
     adv2: body.adv2,
-    adv3: body.adv3,
+    horasSemana: body.horasSemana ?? 0,
+    observacoes: body.observacoes ?? '',
   }
 
   data.membros.push(novoMembro)
@@ -52,7 +53,7 @@ router.post('/', requireAuth, modOrAdmin, validateBody(membroSchema), (req: Requ
   res.status(201).json(novoMembro)
 })
 
-router.put('/reorder', requireAuth, modOrAdmin, validateBody(reorderSchema), (req: Request, res: Response): void => {
+router.put('/reorder', requireAuth, requireArea('membros'), validateBody(reorderSchema), (req: Request, res: Response): void => {
   const { orderedIds } = req.body as { orderedIds: number[] }
   const data = readData()
 
@@ -68,7 +69,7 @@ router.put('/reorder', requireAuth, modOrAdmin, validateBody(reorderSchema), (re
   res.json({ ok: true })
 })
 
-router.put('/:id', requireAuth, modOrAdmin, validateBody(membroUpdateSchema), (req: Request, res: Response): void => {
+router.put('/:id', requireAuth, requireArea('membros'), validateBody(membroUpdateSchema), (req: Request, res: Response): void => {
   const id = parseInt(String(req.params.id), 10)
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
 
@@ -78,7 +79,7 @@ router.put('/:id', requireAuth, modOrAdmin, validateBody(membroUpdateSchema), (r
 
   const allowed: (keyof Membro)[] = [
     'badge','passaporte','policial','patenteNPD','patenteInterna',
-    'status','entrada','promocao','adv1','adv2','adv3',
+    'status','entrada','promocao','adv1','adv2','horasSemana','observacoes',
   ]
   const body = req.body as Partial<Membro>
   allowed.forEach(field => {
@@ -92,7 +93,7 @@ router.put('/:id', requireAuth, modOrAdmin, validateBody(membroUpdateSchema), (r
   res.json(data.membros[idx])
 })
 
-router.delete('/:id', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.delete('/:id', requireAuth, requireArea('membros'), (req: Request, res: Response): void => {
   const id = parseInt(String(req.params.id), 10)
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
 

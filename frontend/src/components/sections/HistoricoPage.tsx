@@ -4,7 +4,7 @@ import { Trash2, Download, Filter } from 'lucide-react'
 import { useAcoes, useDeleteAcao } from '@/hooks/useAcoes'
 import { useQrus } from '@/hooks/useConfig'
 import { useMembros } from '@/hooks/useMembros'
-import { useAuthStore } from '@/store/authStore'
+import { usePerms } from '@/hooks/usePerms'
 import { useUIStore } from '@/store/uiStore'
 import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
@@ -16,25 +16,25 @@ import { downloadBlob } from '@/lib/utils'
 
 const RESULTADO_COLORS: Record<string, string> = {
   'Vitória':      '#27ae60',
-  'Derrota':      '#c0392b',
-  'Empate': '#2980b9',
+  'Derrota':      '#b8433a',
+  'Empate': '#909090',
 }
 
 const PAGE_SIZE = 20
 
 export default function HistoricoPage() {
-  const { user } = useAuthStore()
+  const { canEdit: canArea } = usePerms()
   const { addToast } = useUIStore()
   const [page, setPage] = useState(1)
   const [qruFilter, setQruFilter] = useState('')
   const [resultFilter, setResultFilter] = useState('')
 
-  const { data, isLoading } = useAcoes({ qru: qruFilter || undefined, resultado: resultFilter || undefined, page, limit: PAGE_SIZE })
+  const { data, isLoading } = useAcoes({ qru: qruFilter || undefined, resultado: resultFilter || undefined, status: 'aprovada', page, limit: PAGE_SIZE })
   const { data: qrus } = useQrus()
   const { data: membros } = useMembros()
   const deleteAcao = useDeleteAcao()
 
-  const canEdit = user?.nivel === 'admin' || user?.nivel === 'moderador'
+  const canEdit = canArea('historico')
 
   const membroMap = new Map((membros ?? []).map((m: Membro) => [m.id, m]))
 

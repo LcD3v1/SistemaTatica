@@ -1,127 +1,174 @@
-import { motion, AnimatePresence } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, PlusCircle, History, BarChart2,
-  Users, Settings, UserPlus, Eye,
+  LayoutGrid, FilePlus2, ClipboardCheck, History,
+  Users, Trophy, CalendarPlus, CalendarDays, ArrowUpNarrowWide, UserPlus,
+  Megaphone, GraduationCap,
+  Settings, ArrowUpRight, Code2, Bell,
 } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
-import { useUIStore } from '@/store/uiStore'
-import { useLogo } from '@/hooks/useConfig'
-import type { Nivel } from '@/types'
+import type { LucideIcon } from 'lucide-react'
+import { useAcoes } from '@/hooks/useAcoes'
+import { useAvisos } from '@/hooks/useAvisos'
+import { usePerms } from '@/hooks/usePerms'
+import Brand from '@/components/ui/Brand'
+import type { AreaId } from '@/lib/permAreas'
 
-const NAV_ITEMS = [
-  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard',         minNivel: 'membro'    as Nivel, viewOnly: false },
-  { to: '/acoes/nova',      icon: PlusCircle,      label: 'Registrar Ação',    minNivel: 'membro'    as Nivel, viewOnly: false },
-  { to: '/acoes/historico', icon: History,          label: 'Histórico',         minNivel: 'membro'    as Nivel, viewOnly: false },
-  { to: '/estatisticas',    icon: BarChart2,        label: 'Estatísticas',      minNivel: 'membro'    as Nivel, viewOnly: true  },
-  { to: '/recrutamento',    icon: UserPlus,         label: 'Recrutamento',      minNivel: 'membro'    as Nivel, viewOnly: false },
-  { to: '/membros',         icon: Users,            label: 'Membros',           minNivel: 'membro'    as Nivel, viewOnly: true  },
-  { to: '/configuracoes',   icon: Settings,         label: 'Configurações',     minNivel: 'moderador' as Nivel, viewOnly: false },
+interface NavItem {
+  to: string
+  icon: LucideIcon
+  label: string
+  area?: AreaId
+  badge?: number
+  external?: boolean
+}
+interface NavGroup {
+  title: string
+  items: NavItem[]
+}
+
+const GROUPS: NavGroup[] = [
+  {
+    title: 'Painel',
+    items: [
+      { to: '/dashboard', icon: LayoutGrid, label: 'Visão geral', area: 'dashboard' },
+      { to: '/avisos',    icon: Bell,       label: 'Avisos',      area: 'avisos' },
+    ],
+  },
+  {
+    title: 'Apreensões',
+    items: [
+      { to: '/acoes/nova',       icon: FilePlus2,      label: 'Cadastrar',       area: 'registrar_acao' },
+      { to: '/acoes/pendentes',  icon: ClipboardCheck, label: 'Pendentes',       area: 'pendentes' },
+      { to: '/acoes/historico',  icon: History,        label: 'Histórico',       area: 'historico' },
+    ],
+  },
+  {
+    title: 'Efetivo',
+    items: [
+      { to: '/membros',        icon: Users,             label: 'Membros',            area: 'membros' },
+      { to: '/ranking',        icon: Trophy,            label: 'Ranking',            area: 'ranking' },
+      { to: '/ausencias/nova', icon: CalendarPlus,      label: 'Registrar Ausência', area: 'ausencias' },
+      { to: '/ausencias',      icon: CalendarDays,      label: 'Ausências',          area: 'ausencias' },
+      { to: '/promocoes',      icon: ArrowUpNarrowWide, label: 'Promoções',          area: 'promocoes' },
+      { to: '/recrutamento',   icon: UserPlus,          label: 'Recrutamento',       external: true, area: 'recrutamento' },
+    ],
+  },
+  {
+    title: 'Interações',
+    items: [
+      { to: '/anuncio',  icon: Megaphone,     label: 'Gerar anúncio',    area: 'anuncio' },
+      { to: '/cursos',   icon: GraduationCap, label: 'Cursos Internos',  external: true },
+    ],
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { to: '/configuracoes', icon: Settings, label: 'Configurações', area: 'configuracoes' },
+    ],
+  },
 ]
 
-const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
-
 export default function Sidebar() {
-  const { user } = useAuthStore()
-  const { sidebarCollapsed } = useUIStore()
-  const { data: logoData } = useLogo()
+  const { data: pend } = useAcoes({ status: 'pendente', limit: 1 })
+  const pendingCount = pend?.total ?? 0
+  const { data: avisosData } = useAvisos()
+  const avisosNaoVistos = avisosData?.naoVistos ?? 0
 
-  const isViewOnly = user?.nivel === 'view_only'
-  const userRank = user ? (RANK[user.nivel] ?? -1) : 0
+  const { canView } = usePerms()
 
-  const visibleItems = NAV_ITEMS.filter(item =>
-    isViewOnly ? item.viewOnly : userRank >= RANK[item.minNivel]
-  )
+  // Mostra o item se não tiver área (ex.: externos) ou se o cargo permitir ver a área.
+  const groups = GROUPS
+    .map(g => ({
+      ...g,
+      items: g.items.filter(item => !item.area || canView(item.area)),
+    }))
+    .filter(g => g.items.length > 0)
 
   return (
-    <motion.nav
-      initial={{ x: -280 }}
-      animate={{ x: 0 }}
-      transition={{ type: 'spring', stiffness: 80, damping: 20 }}
-      className={`
-        bg-sb border-r border-bdr flex flex-col shrink-0 overflow-hidden
-        transition-all duration-300
-        ${sidebarCollapsed ? 'w-16' : 'w-64'}
-      `}
-    >
+    <nav className="w-60 bg-sb border-r border-bdr flex flex-col shrink-0 overflow-hidden">
       {/* Logo + nome */}
-      <div className="flex flex-col items-center py-6 px-3 border-b border-bdr gap-3">
-        <div className="logo-ring" style={{ width: 56, height: 56 }}>
-          {logoData?.logo ? (
-            <img src={logoData.logo} alt="Logo" className="logo-circle" />
-          ) : (
-            <span className="logo-fallback" style={{ fontSize: 9 }}>PMC<br />TÁTICA</span>
-          )}
+      <div className="flex flex-col items-center pt-6 pb-5 px-3 gap-2 border-b border-bdr/60">
+        <div className="relative flex items-center justify-center" style={{ width: 86, height: 86 }}>
+          <div className="absolute inset-0 rounded-full pointer-events-none"
+               style={{ background: 'radial-gradient(circle, rgba(200,200,200,0.5), transparent 68%)', animation: 'logo-aura 3.2s ease-in-out infinite' }} />
+          <div className="absolute inset-1.5 rounded-full pointer-events-none"
+               style={{
+                 background: 'conic-gradient(from 0deg, transparent 0deg, rgba(200,200,200,0.95) 90deg, transparent 210deg)',
+                 WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+                 mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+                 animation: 'logo-ring 5s linear infinite',
+               }} />
+          <div style={{ animation: 'logo-float 4s ease-in-out infinite', filter: 'drop-shadow(0 0 12px rgba(200,200,200,0.5))' }}>
+            <Brand size={62} />
+          </div>
         </div>
-        <AnimatePresence>
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              className="text-center overflow-hidden whitespace-nowrap"
-            >
-              <p className="font-orbitron text-xs font-bold text-gold tracking-widest">TÁTICA</p>
-              <p className="font-mono text-[10px] text-txt3 tracking-wider">SISTEMA INTERNO</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <p className="wordmark text-[15px] text-txt tracking-[0.18em] mt-1">Tática</p>
       </div>
 
-      {/* Banner view only */}
-      {isViewOnly && !sidebarCollapsed && (
-        <div className="mx-2 mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-bdr border border-bdr2 rounded text-txt3 font-mono text-[10px] tracking-widest">
-          <Eye size={11} className="shrink-0" />
-          SOMENTE LEITURA
-        </div>
-      )}
-
       {/* Navegação */}
-      <nav className="flex-1 py-4 flex flex-col gap-1 px-2 overflow-y-auto">
-        {visibleItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 group
-              ${isActive
-                ? 'bg-bdrg border-l-2 border-gold text-gold'
-                : 'text-txt2 hover:text-txt hover:bg-bdr border-l-2 border-transparent'
-              }`
-            }
-          >
-            <item.icon size={18} className="shrink-0" />
-            <AnimatePresence>
-              {!sidebarCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="font-mono text-xs tracking-wide whitespace-nowrap overflow-hidden"
-                >
-                  {item.label}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </NavLink>
-        ))}
-      </nav>
-
-      {/* Footer */}
-      <AnimatePresence>
-        {!sidebarCollapsed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="p-4 border-t border-bdr"
-          >
-            <p className="font-mono text-[9px] text-txt3 text-center tracking-widest">
-              © SISTEMA TÁTICA v2.0
+      <div className="flex-1 overflow-y-auto pb-4 px-3">
+        {groups.map(group => (
+          <div key={group.title} className="mb-1">
+            <p className="font-mono text-[10px] text-txt3 tracking-[0.2em] uppercase px-2 mt-5 mb-2">
+              {group.title}
             </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end
+                  className={({ isActive }) =>
+                    `group relative flex items-center gap-3 pl-3 pr-2 py-2 rounded-md text-sm transition-colors
+                    ${isActive
+                      ? 'bg-gold/10 text-txt font-medium'
+                      : 'text-txt2 hover:text-txt hover:bg-white/[0.03]'
+                    }`
+                  }
+                >
+                  {({ isActive }) => {
+                    const badge = item.to === '/acoes/pendentes' ? pendingCount
+                      : item.to === '/avisos' ? avisosNaoVistos
+                      : item.badge
+                    return (
+                    <>
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-gold" />
+                      )}
+                      <item.icon
+                        size={17}
+                        className={`shrink-0 ${isActive ? 'text-gold' : 'text-txt3 group-hover:text-txt2'}`}
+                      />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {badge != null && badge > 0 && (
+                        <span className="min-w-[18px] h-[18px] px-1 rounded-md bg-red/90 text-white text-[11px] font-semibold flex items-center justify-center">
+                          {badge}
+                        </span>
+                      )}
+                      {item.external && (
+                        <ArrowUpRight size={13} className="shrink-0 text-txt3" />
+                      )}
+                    </>
+                    )
+                  }}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer — desenvolvido por */}
+      <div className="group m-3 flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-gradient-to-br from-navy2/50 to-transparent px-3 py-2.5 transition-colors hover:border-gold/30">
+        <div className="w-7 h-7 shrink-0 rounded-md bg-gold/15 border border-gold/30 flex items-center justify-center transition-transform group-hover:scale-105">
+          <Code2 size={14} className="text-gold3" />
+        </div>
+        <div className="leading-tight">
+          <p className="font-mono text-[8px] text-txt3 tracking-[0.22em] uppercase">Desenvolvido por</p>
+          <p className="text-[12px] font-semibold text-txt tracking-wide">
+            LC<span className="text-gold3"> Dev</span>
+          </p>
+        </div>
+      </div>
+    </nav>
   )
 }

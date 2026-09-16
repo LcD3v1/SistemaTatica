@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import bcrypt from 'bcrypt'
 import { requireAuth } from '../middleware/auth'
-import { modOrAdmin, adminOnly } from '../middleware/roles'
+import { requireArea, requireAdmin } from '../middleware/roles'
 import { criticalLimiter } from '../middleware/rateLimiter'
 import {
   validateBody,
@@ -9,10 +9,14 @@ import {
   createContaSchema, updateContaSchema,
   logoSchema, recCfgSchema,
   reorderPatenteSchema, reorderQruSchema,
+  situacaoAnuncioSchema, situacaoAnuncioUpdateSchema,
+  aprovarSolicitacaoSchema,
+  cargoPermCreateSchema, cargoPermUpdateSchema,
 } from '../middleware/validate'
 import { audit, readAuditLog } from '../security/audit'
 import { readData, writeData } from '../data'
-import { Conta, SwatData } from '../types'
+import { Conta, FastData, CargoPermissao } from '../types'
+import { normalizePermMap, isAdminConta } from '../permAreas'
 
 const router = Router()
 
@@ -20,7 +24,7 @@ const router = Router()
 
 router.get('/qrus', requireAuth, (_req, res) => res.json(readData().qrus))
 
-router.post('/qrus', requireAuth, modOrAdmin, validateBody(qruSchema), (req: Request, res: Response): void => {
+router.post('/qrus', requireAuth, requireArea('configuracoes'), validateBody(qruSchema), (req: Request, res: Response): void => {
   const { nome } = req.body as { nome: string }
   const data = readData()
   if (data.qrus.includes(nome)) { res.status(409).json({ error: 'QRU já existe' }); return }
@@ -30,7 +34,7 @@ router.post('/qrus', requireAuth, modOrAdmin, validateBody(qruSchema), (req: Req
   res.status(201).json(data.qrus)
 })
 
-router.put('/qrus/reorder', requireAuth, modOrAdmin, validateBody(reorderQruSchema), (req: Request, res: Response): void => {
+router.put('/qrus/reorder', requireAuth, requireArea('configuracoes'), validateBody(reorderQruSchema), (req: Request, res: Response): void => {
   const { qrus } = req.body as { qrus: string[] }
   const data = readData()
   const current = new Set(data.qrus)
@@ -48,7 +52,7 @@ router.put('/qrus/reorder', requireAuth, modOrAdmin, validateBody(reorderQruSche
   res.json(data.qrus)
 })
 
-router.delete('/qrus/:nome', requireAuth, modOrAdmin, (req: Request, res: Response): void => {
+router.delete('/qrus/:nome', requireAuth, requireArea('configuracoes'), (req: Request, res: Response): void => {
   const nome = String(req.params.nome).slice(0, 50)
   const data = readData()
   data.qrus = data.qrus.filter(q => q !== nome)
@@ -61,7 +65,7 @@ router.delete('/qrus/:nome', requireAuth, modOrAdmin, (req: Request, res: Respon
 
 router.get('/patentes', requireAuth, (_req, res) => res.json(readData().patentes))
 
-router.post('/patentes', requireAuth, modOrAdmin, validateBody(patenteSchema), (req: Request, res: Response): void => {
+router.post('/patentes', requireAuth, requireArea('configuracoes'), validateBody(patenteSchema), (req: Request, res: Response): void => {
   const { nome } = req.body as { nome: string }
   const data = readData()
   data.patentes.push(nome)
@@ -70,7 +74,7 @@ router.post('/patentes', requireAuth, modOrAdmin, validateBody(patenteSchema), (
   res.status(201).json(data.patentes)
 })
 
-router.put('/patentes/reorder', requireAuth, modOrAdmin, validateBody(reorderPatenteSchema), (req: Request, res: Response): void => {
+router.put('/patentes/reorder', requireAuth, requireArea('configuracoes'), validateBody(reorderPatenteSchema), (req: Request, res: Response): void => {
   const { patentes } = req.body as { patentes: string[] }
   const data = readData()
   data.patentes = patentes.map(p => String(p).slice(0, 50))
@@ -78,7 +82,7 @@ router.put('/patentes/reorder', requireAuth, modOrAdmin, validateBody(reorderPat
   res.json(data.patentes)
 })
 
-router.delete('/patentes/:nome', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.delete('/patentes/:nome', requireAuth, requireAdmin, (req: Request, res: Response): void => {
   const nome = String(req.params.nome).slice(0, 50)
   const data = readData()
   data.patentes = data.patentes.filter(p => p !== nome)
@@ -91,7 +95,7 @@ router.delete('/patentes/:nome', requireAuth, adminOnly, (req: Request, res: Res
 
 router.get('/cargos', requireAuth, (_req, res) => res.json(readData().cargos))
 
-router.post('/cargos', requireAuth, modOrAdmin, validateBody(cargoSchema), (req: Request, res: Response): void => {
+router.post('/cargos', requireAuth, requireArea('configuracoes'), validateBody(cargoSchema), (req: Request, res: Response): void => {
   const { nome } = req.body as { nome: string }
   const data = readData()
   data.cargos.push(nome)
@@ -100,7 +104,7 @@ router.post('/cargos', requireAuth, modOrAdmin, validateBody(cargoSchema), (req:
   res.status(201).json(data.cargos)
 })
 
-router.delete('/cargos/:nome', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.delete('/cargos/:nome', requireAuth, requireAdmin, (req: Request, res: Response): void => {
   const nome = String(req.params.nome).slice(0, 50)
   const data = readData()
   data.cargos = data.cargos.filter(c => c !== nome)
@@ -109,15 +113,101 @@ router.delete('/cargos/:nome', requireAuth, adminOnly, (req: Request, res: Respo
   res.json(data.cargos)
 })
 
+// ── Situações de anúncio ────────────────────────────────────────────────────────
+
+router.get('/anuncio-situacoes', requireAuth, (_req, res) => res.json(readData().anuncioSituacoes))
+
+router.post('/anuncio-situacoes', requireAuth, requireArea('configuracoes'), validateBody(situacaoAnuncioSchema), (req: Request, res: Response): void => {
+  const { label, titulo, texto } = req.body as { label: string; titulo: string; texto: string }
+  const data = readData()
+  const nova = { id: data.nextSitId, label, titulo, texto }
+  data.anuncioSituacoes.push(nova)
+  data.nextSitId++
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Situação de anúncio criada: ${label}`)
+  res.status(201).json(data.anuncioSituacoes)
+})
+
+router.put('/anuncio-situacoes/:id', requireAuth, requireArea('configuracoes'), validateBody(situacaoAnuncioUpdateSchema), (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  const s = data.anuncioSituacoes.find(x => x.id === id)
+  if (!s) { res.status(404).json({ error: 'Situação não encontrada' }); return }
+  const { label, titulo, texto } = req.body as { label?: string; titulo?: string; texto?: string }
+  if (label !== undefined) s.label = label
+  if (titulo !== undefined) s.titulo = titulo
+  if (texto !== undefined) s.texto = texto
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Situação de anúncio atualizada: ${s.label}`)
+  res.json(data.anuncioSituacoes)
+})
+
+router.delete('/anuncio-situacoes/:id', requireAuth, requireArea('configuracoes'), (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  data.anuncioSituacoes = data.anuncioSituacoes.filter(x => x.id !== id)
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Situação de anúncio removida: ${id}`)
+  res.json(data.anuncioSituacoes)
+})
+
+// ── Solicitações de cadastro ────────────────────────────────────────────────────
+
+router.get('/solicitacoes', requireAuth, requireAdmin, (_req, res) => {
+  const data = readData()
+  res.json(data.solicitacoes.map(({ senha: _s, ...rest }) => rest))
+})
+
+router.post('/solicitacoes/:id/aprovar', requireAuth, requireAdmin, validateBody(aprovarSolicitacaoSchema), (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  const idx = data.solicitacoes.findIndex(s => s.id === id)
+  if (idx === -1) { res.status(404).json({ error: 'Solicitação não encontrada' }); return }
+  const sol = data.solicitacoes[idx]
+  if (data.contas.some(c => c.username.toLowerCase() === sol.username.toLowerCase())) {
+    res.status(409).json({ error: 'Já existe uma conta com esse usuário.' }); return
+  }
+  const { cargoPermId } = req.body as { cargoPermId?: number | null }
+  const nova: Conta = { id: data.nextContaId, username: sol.username, password: sol.senha, ativo: true, onboarded: false }
+  if (cargoPermId && data.cargosPermissao.some(c => c.id === cargoPermId)) {
+    nova.cargoPermId = cargoPermId
+  } else {
+    const cargoPadrao = data.cargosPermissao.find(c => c.padrao && !c.admin)
+    if (cargoPadrao) nova.cargoPermId = cargoPadrao.id
+  }
+  data.contas.push(nova)
+  data.nextContaId++
+  data.solicitacoes.splice(idx, 1)
+  writeData(data)
+  audit('SIGNUP_APPROVED', req, `Usuário: ${nova.username} | Cargo: #${nova.cargoPermId ?? '—'}`)
+  const { password: _p, ...semSenha } = nova
+  res.status(201).json(semSenha)
+})
+
+router.delete('/solicitacoes/:id', requireAuth, requireAdmin, (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  const before = data.solicitacoes.length
+  data.solicitacoes = data.solicitacoes.filter(s => s.id !== id)
+  if (data.solicitacoes.length === before) { res.status(404).json({ error: 'Solicitação não encontrada' }); return }
+  writeData(data)
+  audit('SIGNUP_REJECTED', req, `ID: ${id}`)
+  res.json({ ok: true })
+})
+
 // ── Contas ────────────────────────────────────────────────────────────────────
 
-router.get('/contas', requireAuth, adminOnly, (_req, res) => {
+router.get('/contas', requireAuth, requireAdmin, (_req, res) => {
   const data = readData()
   res.json(data.contas.map(({ password: _p, ...rest }) => rest))
 })
 
-router.post('/contas', requireAuth, adminOnly, validateBody(createContaSchema), async (req: Request, res: Response): Promise<void> => {
-  const { username, password, nivel } = req.body as { username: string; password: string; nivel: string }
+router.post('/contas', requireAuth, requireAdmin, validateBody(createContaSchema), async (req: Request, res: Response): Promise<void> => {
+  const { username, password, cargoPermId } = req.body as { username: string; password: string; cargoPermId?: number | null }
   const data = readData()
 
   if (data.contas.some(c => c.username.toLowerCase() === username.toLowerCase())) {
@@ -128,20 +218,22 @@ router.post('/contas', requireAuth, adminOnly, validateBody(createContaSchema), 
     id: data.nextContaId,
     username: username.trim(),
     password: await bcrypt.hash(password, 12),
-    nivel: nivel as Conta['nivel'],
     ativo: true,
+  }
+  if (cargoPermId && data.cargosPermissao.some(c => c.id === cargoPermId)) {
+    novaConta.cargoPermId = cargoPermId
   }
 
   data.contas.push(novaConta)
   data.nextContaId++
   writeData(data)
 
-  audit('ACCOUNT_CREATED', req, `Usuário: ${novaConta.username} | Nível: ${novaConta.nivel}`)
+  audit('ACCOUNT_CREATED', req, `Usuário: ${novaConta.username} | Cargo: #${novaConta.cargoPermId ?? '—'}`)
   const { password: _p, ...semSenha } = novaConta
   res.status(201).json(semSenha)
 })
 
-router.put('/contas/:id', requireAuth, adminOnly, validateBody(updateContaSchema), async (req: Request, res: Response): Promise<void> => {
+router.put('/contas/:id', requireAuth, requireAdmin, validateBody(updateContaSchema), async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(String(req.params.id), 10)
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
 
@@ -149,19 +241,18 @@ router.put('/contas/:id', requireAuth, adminOnly, validateBody(updateContaSchema
   const conta = data.contas.find(c => c.id === id)
   if (!conta) { res.status(404).json({ error: 'Conta não encontrada' }); return }
 
-  // Admin não pode rebaixar a si mesmo
-  if (id === req.user!.contaId && req.body.nivel && req.body.nivel !== 'admin') {
-    audit('PRIVILEGE_ESCALATION_ATTEMPT', req, `Tentativa de auto-rebaixamento: ${conta.username}`)
-    res.status(400).json({ error: 'Não é possível alterar o próprio nível' }); return
-  }
-
-  const { nivel, ativo, password } = req.body as { nivel?: string; ativo?: boolean; password?: string }
+  const { ativo, password, cargoPermId } = req.body as { ativo?: boolean; password?: string; cargoPermId?: number | null }
   const changes: string[] = []
 
-  if (nivel && ['admin', 'moderador', 'membro', 'view_only'].includes(nivel)) {
-    changes.push(`nível: ${conta.nivel}→${nivel}`)
-    conta.nivel = nivel as Conta['nivel']
+  // Admin não pode remover o próprio cargo administrador (evita auto-lockout)
+  if (id === req.user!.contaId && cargoPermId !== undefined) {
+    const novoCargo = cargoPermId ? data.cargosPermissao.find(c => c.id === cargoPermId) : undefined
+    if (isAdminConta(conta, data.cargosPermissao) && !novoCargo?.admin) {
+      audit('PRIVILEGE_ESCALATION_ATTEMPT', req, `Tentativa de auto-remoção de admin: ${conta.username}`)
+      res.status(400).json({ error: 'Não é possível remover o próprio cargo administrador' }); return
+    }
   }
+
   if (typeof ativo === 'boolean') {
     changes.push(`ativo: ${conta.ativo}→${ativo}`)
     conta.ativo = ativo
@@ -170,6 +261,17 @@ router.put('/contas/:id', requireAuth, adminOnly, validateBody(updateContaSchema
     conta.password = await bcrypt.hash(password, 12)
     changes.push('senha alterada')
   }
+  if (cargoPermId !== undefined) {
+    if (cargoPermId === null) {
+      delete conta.cargoPermId
+      changes.push('cargo de permissão removido')
+    } else if (data.cargosPermissao.some(c => c.id === cargoPermId)) {
+      conta.cargoPermId = cargoPermId
+      changes.push(`cargo de permissão: #${cargoPermId}`)
+    } else {
+      res.status(400).json({ error: 'Cargo de permissão não encontrado' }); return
+    }
+  }
 
   writeData(data)
   audit('ACCOUNT_UPDATED', req, `ID: ${id} | ${changes.join(', ')}`)
@@ -177,7 +279,7 @@ router.put('/contas/:id', requireAuth, adminOnly, validateBody(updateContaSchema
   res.json(semSenha)
 })
 
-router.delete('/contas/:id', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.delete('/contas/:id', requireAuth, requireAdmin, (req: Request, res: Response): void => {
   const id = parseInt(String(req.params.id), 10)
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
 
@@ -197,11 +299,76 @@ router.delete('/contas/:id', requireAuth, adminOnly, (req: Request, res: Respons
   res.json({ ok: true })
 })
 
+// ── Cargos de permissão ─────────────────────────────────────────────────────────
+
+router.get('/cargos-permissao', requireAuth, requireAdmin, (_req, res) => {
+  res.json(readData().cargosPermissao)
+})
+
+router.post('/cargos-permissao', requireAuth, requireAdmin, validateBody(cargoPermCreateSchema), (req: Request, res: Response): void => {
+  const { nome, admin, permissoes } = req.body as { nome: string; admin?: boolean; permissoes: Record<string, { ver: boolean; editar: boolean }> }
+  const data = readData()
+  if (data.cargosPermissao.some(c => c.nome.toLowerCase() === nome.toLowerCase())) {
+    res.status(409).json({ error: 'Já existe um cargo com esse nome.' }); return
+  }
+  const novo: CargoPermissao = {
+    id: data.nextCargoPermId,
+    nome,
+    padrao: false,
+    admin: !!admin,
+    permissoes: normalizePermMap(permissoes),
+  }
+  data.cargosPermissao.push(novo)
+  data.nextCargoPermId++
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Cargo de permissão criado: ${nome}`)
+  res.status(201).json(novo)
+})
+
+router.put('/cargos-permissao/:id', requireAuth, requireAdmin, validateBody(cargoPermUpdateSchema), (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  const cargo = data.cargosPermissao.find(c => c.id === id)
+  if (!cargo) { res.status(404).json({ error: 'Cargo não encontrado' }); return }
+  const { nome, padrao, admin, permissoes } = req.body as { nome?: string; padrao?: boolean; admin?: boolean; permissoes?: Record<string, { ver: boolean; editar: boolean }> }
+
+  if (nome !== undefined) {
+    if (data.cargosPermissao.some(c => c.id !== id && c.nome.toLowerCase() === nome.toLowerCase())) {
+      res.status(409).json({ error: 'Já existe um cargo com esse nome.' }); return
+    }
+    cargo.nome = nome
+  }
+  if (admin !== undefined) cargo.admin = admin
+  if (permissoes !== undefined) cargo.permissoes = normalizePermMap({ ...cargo.permissoes, ...permissoes })
+  if (padrao !== undefined) {
+    if (padrao) data.cargosPermissao.forEach(c => { c.padrao = c.id === id })
+    else cargo.padrao = false
+  }
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Cargo de permissão atualizado: ${cargo.nome}`)
+  res.json(cargo)
+})
+
+router.delete('/cargos-permissao/:id', requireAuth, requireAdmin, (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id), 10)
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return }
+  const data = readData()
+  const before = data.cargosPermissao.length
+  data.cargosPermissao = data.cargosPermissao.filter(c => c.id !== id)
+  if (data.cargosPermissao.length === before) { res.status(404).json({ error: 'Cargo não encontrado' }); return }
+  // Desvincula das contas que usavam este cargo
+  data.contas.forEach(c => { if (c.cargoPermId === id) delete c.cargoPermId })
+  writeData(data)
+  audit('CONFIG_UPDATED', req, `Cargo de permissão removido: #${id}`)
+  res.json({ ok: true })
+})
+
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
 router.get('/logo', (_req, res) => res.json({ logo: readData().logo }))
 
-router.put('/logo', requireAuth, modOrAdmin, validateBody(logoSchema), (req: Request, res: Response): void => {
+router.put('/logo', requireAuth, requireArea('configuracoes'), validateBody(logoSchema), (req: Request, res: Response): void => {
   const { logo } = req.body as { logo: string }
   const data = readData()
   data.logo = logo
@@ -210,7 +377,7 @@ router.put('/logo', requireAuth, modOrAdmin, validateBody(logoSchema), (req: Req
   res.json({ ok: true })
 })
 
-router.delete('/logo', requireAuth, modOrAdmin, (_req, res) => {
+router.delete('/logo', requireAuth, requireArea('configuracoes'), (_req, res) => {
   const data = readData()
   data.logo = ''
   writeData(data)
@@ -222,7 +389,7 @@ router.delete('/logo', requireAuth, modOrAdmin, (_req, res) => {
 
 router.get('/recrutamento', requireAuth, (_req, res) => res.json(readData().recCfg))
 
-router.put('/recrutamento', requireAuth, modOrAdmin, validateBody(recCfgSchema), (req: Request, res: Response): void => {
+router.put('/recrutamento', requireAuth, requireArea('configuracoes'), validateBody(recCfgSchema), (req: Request, res: Response): void => {
   const data = readData()
   const { notaMinima, categorias } = req.body
   if (typeof notaMinima === 'number') data.recCfg.notaMinima = notaMinima
@@ -234,7 +401,7 @@ router.put('/recrutamento', requireAuth, modOrAdmin, validateBody(recCfgSchema),
 
 // ── Backup / Restore ──────────────────────────────────────────────────────────
 
-router.get('/backup', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.get('/backup', requireAuth, requireAdmin, (req: Request, res: Response): void => {
   const data = readData()
   // Mascarar senhas no backup (não exportar hashes)
   const sanitized = {
@@ -243,14 +410,14 @@ router.get('/backup', requireAuth, adminOnly, (req: Request, res: Response): voi
   }
   audit('BACKUP_DOWNLOADED', req)
   res.setHeader('Content-Type', 'application/json')
-  res.setHeader('Content-Disposition', `attachment; filename="swat-backup-${new Date().toISOString().slice(0, 10)}.json"`)
+  res.setHeader('Content-Disposition', `attachment; filename="fast-backup-${new Date().toISOString().slice(0, 10)}.json"`)
   res.send(JSON.stringify(sanitized, null, 2))
 })
 
-router.post('/restore', requireAuth, adminOnly, criticalLimiter, (req: Request, res: Response): void => {
-  const body = req.body as Partial<SwatData>
+router.post('/restore', requireAuth, requireAdmin, criticalLimiter, (req: Request, res: Response): void => {
+  const body = req.body as Partial<FastData>
 
-  const required: (keyof SwatData)[] = ['membros', 'acoes', 'contas']
+  const required: (keyof FastData)[] = ['membros', 'acoes', 'contas']
   if (!required.every(k => Array.isArray(body[k]))) {
     res.status(400).json({ error: 'Backup inválido — campos obrigatórios ausentes' }); return
   }
@@ -262,14 +429,14 @@ router.post('/restore', requireAuth, adminOnly, criticalLimiter, (req: Request, 
     return
   }
 
-  writeData(body as SwatData)
+  writeData(body as FastData)
   audit('RESTORE_EXECUTED', req, `Membros: ${body.membros?.length} | Ações: ${body.acoes?.length}`)
   res.json({ ok: true })
 })
 
 // ── Audit Log (admin only) ────────────────────────────────────────────────────
 
-router.get('/audit-log', requireAuth, adminOnly, (req: Request, res: Response): void => {
+router.get('/audit-log', requireAuth, requireAdmin, (req: Request, res: Response): void => {
   const limit = Math.min(500, Math.max(10, parseInt(String(req.query.limit || '100'), 10)))
   res.json(readAuditLog(limit))
 })

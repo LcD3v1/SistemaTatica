@@ -1,6 +1,6 @@
 interface Props {
   active: boolean
-  index: 1 | 2 | 3
+  index: 1 | 2
   onClick?: () => void
   readonly?: boolean
 }
@@ -8,8 +8,7 @@ interface Props {
 const COLORS = {
   inactive: 'border-bdr2 bg-card2',
   1: 'border-gold3 bg-gold3/20 text-gold3',
-  2: 'border-orange-400 bg-orange-400/20 text-orange-400',
-  3: 'border-red bg-red/20 text-red',
+  2: 'border-red bg-red/20 text-red',
 }
 
 export default function AdvBox({ active, index, onClick, readonly = false }: Props) {

@@ -11,7 +11,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Image, List, Briefcase, Radio, UserPlus, Users,
-  Plus, Trash2,
+  Plus, Trash2, Megaphone, Inbox, Check, X, Clock, ShieldCheck,
 } from 'lucide-react'
 import {
   useQrus, useAddQru, useDeleteQru, useReorderQrus,
@@ -19,9 +19,15 @@ import {
   useCargos, useAddCargo, useDeleteCargo,
   useLogo,
   useRecCfg, useUpdateRecCfg,
+  useAnuncioSituacoes, useAddSituacao, useUpdateSituacao, useDeleteSituacao,
 } from '@/hooks/useConfig'
+import type { SituacaoAnuncio } from '@/hooks/useConfig'
 import { useContas, useCreateConta, useUpdateConta, useDeleteConta } from '@/hooks/useContas'
+import { useSolicitacoes, useAprovarSolicitacao, useRejeitarSolicitacao } from '@/hooks/useSolicitacoes'
+import { useCargosPermissao } from '@/hooks/useCargosPermissao'
+import PermissoesEditor from '@/components/sections/PermissoesEditor'
 import { useAuthStore } from '@/store/authStore'
+import { usePerms } from '@/hooks/usePerms'
 import { useUIStore } from '@/store/uiStore'
 import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
@@ -29,18 +35,20 @@ import ModalOverlay from '@/components/ui/ModalOverlay'
 import LoadingHud from '@/components/ui/LoadingHud'
 import LogoUploader from '@/components/ui/LogoUploader'
 import DragHandle from '@/components/ui/DragHandle'
-import type { CategoriaRecrutamento, Nivel } from '@/types'
+import type { CategoriaRecrutamento } from '@/types'
 
+// adminOnly: só cargo administrador. Demais exigem a área "configuracoes".
 const TABS = [
-  { id: 'logo',       label: 'Logo',          icon: Image,    minNivel: 'moderador' },
-  { id: 'patentes',   label: 'Patentes',       icon: List,     minNivel: 'moderador' },
-  { id: 'cargos',     label: 'Cargos',         icon: Briefcase, minNivel: 'moderador' },
-  { id: 'qrus',       label: 'QRUs',           icon: Radio,    minNivel: 'moderador' },
-  { id: 'recrutamento', label: 'Recrutamento', icon: UserPlus, minNivel: 'moderador' },
-  { id: 'contas',     label: 'Contas',         icon: Users,    minNivel: 'admin' },
+  { id: 'logo',       label: 'Logo',          icon: Image,     adminOnly: false },
+  { id: 'patentes',   label: 'Patentes',       icon: List,      adminOnly: false },
+  { id: 'cargos',     label: 'Cargos',         icon: Briefcase, adminOnly: false },
+  { id: 'qrus',       label: 'QRUs',           icon: Radio,     adminOnly: false },
+  { id: 'anuncios',   label: 'Anúncios',       icon: Megaphone, adminOnly: false },
+  { id: 'recrutamento', label: 'Recrutamento', icon: UserPlus,  adminOnly: false },
+  { id: 'solicitacoes', label: 'Solicitações', icon: Inbox,     adminOnly: true },
+  { id: 'permissoes', label: 'Permissões',     icon: ShieldCheck, adminOnly: true },
+  { id: 'contas',     label: 'Contas',         icon: Users,     adminOnly: true },
 ] as const
-
-const RANK: Record<Nivel, number> = { view_only: -1, membro: 0, moderador: 1, admin: 2 }
 
 function SortableListItem({
   item, canEdit, onDelete, canReorder,
@@ -164,13 +172,101 @@ function ListEditor({
   )
 }
 
+function SituacaoItem({
+  s, onUpdate, onDelete,
+}: {
+  s: SituacaoAnuncio
+  onUpdate: (id: number, patch: Partial<Omit<SituacaoAnuncio, 'id'>>) => void
+  onDelete: (id: number) => void
+}) {
+  return (
+    <div className="border border-bdr rounded-lg bg-card2/40 p-3 space-y-2 group">
+      <div className="flex items-center gap-2">
+        <input
+          defaultValue={s.label}
+          onBlur={e => { const v = e.target.value.trim(); if (v && v !== s.label) onUpdate(s.id, { label: v }) }}
+          placeholder="Nome da situação"
+          className="input-gold flex-1 bg-card2 border border-bdr2 rounded px-3 py-1.5 text-sm font-medium text-txt"
+        />
+        <input
+          defaultValue={s.titulo}
+          onBlur={e => { const v = e.target.value.trim(); if (v && v !== s.titulo) onUpdate(s.id, { titulo: v }) }}
+          placeholder="Título"
+          className="input-gold w-48 bg-card2 border border-bdr2 rounded px-3 py-1.5 text-xs font-mono text-txt2"
+        />
+        <button onClick={() => { if (confirm(`Remover a situação "${s.label}"?`)) onDelete(s.id) }}
+          className="text-txt3 hover:text-red transition-colors p-1 opacity-0 group-hover:opacity-100">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <textarea
+        defaultValue={s.texto}
+        onBlur={e => { const v = e.target.value.trim(); if (v && v !== s.texto) onUpdate(s.id, { texto: v }) }}
+        rows={3}
+        placeholder="Mensagem padrão — use [LOCAL] e [ASSINATURA]"
+        className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-xs font-mono text-txt leading-relaxed resize-none"
+      />
+    </div>
+  )
+}
+
+function SituacoesEditor({
+  situacoes, onAdd, onUpdate, onDelete,
+}: {
+  situacoes: SituacaoAnuncio[]
+  onAdd: (s: Omit<SituacaoAnuncio, 'id'>) => void
+  onUpdate: (id: number, patch: Partial<Omit<SituacaoAnuncio, 'id'>>) => void
+  onDelete: (id: number) => void
+}) {
+  const [novo, setNovo] = useState({ label: '', titulo: 'N.P.D INFORMA:', texto: '' })
+
+  function add() {
+    if (!novo.label.trim() || !novo.texto.trim()) return
+    onAdd({ label: novo.label.trim(), titulo: novo.titulo.trim() || 'N.P.D INFORMA:', texto: novo.texto.trim() })
+    setNovo({ label: '', titulo: 'N.P.D INFORMA:', texto: '' })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-display text-xs text-gold tracking-wider mb-1">SITUAÇÕES DE ANÚNCIO</h3>
+        <p className="text-[11px] text-txt3">Modelos usados em "Gerar anúncio". Use <span className="text-gold3">[LOCAL]</span> e <span className="text-gold3">[ASSINATURA]</span> como marcadores.</p>
+      </div>
+
+      {/* Adicionar */}
+      <div className="border border-gold/20 rounded-lg bg-gold/[0.04] p-3 space-y-2">
+        <p className="font-mono text-[11px] text-gold3 tracking-wider">NOVA SITUAÇÃO</p>
+        <div className="flex gap-2">
+          <input value={novo.label} onChange={e => setNovo(p => ({ ...p, label: e.target.value }))}
+            placeholder="Nome (ex: Área Restrita)" className="input-gold flex-1 bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt" />
+          <input value={novo.titulo} onChange={e => setNovo(p => ({ ...p, titulo: e.target.value }))}
+            placeholder="Título" className="input-gold w-48 bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt" />
+        </div>
+        <textarea value={novo.texto} onChange={e => setNovo(p => ({ ...p, texto: e.target.value }))}
+          rows={2} placeholder="Mensagem padrão — use [LOCAL] e [ASSINATURA]"
+          className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-xs font-mono text-txt resize-none" />
+        <div className="flex justify-end">
+          <HudButton size="sm" onClick={add}><Plus size={14} className="inline mr-1" /> Adicionar</HudButton>
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className="space-y-2">
+        {situacoes.map(s => <SituacaoItem key={s.id} s={s} onUpdate={onUpdate} onDelete={onDelete} />)}
+        {situacoes.length === 0 && <p className="font-mono text-xs text-txt3 text-center py-4">Nenhuma situação cadastrada</p>}
+      </div>
+    </div>
+  )
+}
+
 export default function ConfiguracoesPage() {
   const { user } = useAuthStore()
+  const { canView, canEdit, isAdmin } = usePerms()
   const { addToast } = useUIStore()
   const [activeTab, setActiveTab] = useState('logo')
 
-  const userNivel = user?.nivel ?? 'membro'
-  const visibleTabs = TABS.filter(t => RANK[userNivel] >= RANK[t.minNivel as Nivel])
+  const visibleTabs = TABS.filter(t => t.adminOnly ? isAdmin : canView('configuracoes'))
+  const canEditConfig = canEdit('configuracoes')
 
   const { data: qrus = [] } = useQrus()
   const addQru = useAddQru()
@@ -185,6 +281,11 @@ export default function ConfiguracoesPage() {
   const addCargo = useAddCargo()
   const deleteCargo = useDeleteCargo()
 
+  const { data: situacoes = [] } = useAnuncioSituacoes()
+  const addSituacao = useAddSituacao()
+  const updateSituacao = useUpdateSituacao()
+  const deleteSituacao = useDeleteSituacao()
+
   const { data: logoData } = useLogo()
 
   const { data: recCfg } = useRecCfg()
@@ -195,8 +296,14 @@ export default function ConfiguracoesPage() {
   const updateConta = useUpdateConta()
   const deleteConta = useDeleteConta()
 
+  const { data: solicitacoes = [] } = useSolicitacoes(isAdmin)
+  const { data: cargosPerm = [] } = useCargosPermissao(isAdmin)
+  const aprovarSol = useAprovarSolicitacao()
+  const rejeitarSol = useRejeitarSolicitacao()
+  const [cargoPorSol, setCargoPorSol] = useState<Record<number, number | ''>>({})
+
   const [novaContaModal, setNovaContaModal] = useState(false)
-  const [novaContaForm, setNovaContaForm] = useState({ username: '', password: '', nivel: 'membro' })
+  const [novaContaForm, setNovaContaForm] = useState<{ username: string; password: string; cargoPermId: number | '' }>({ username: '', password: '', cargoPermId: '' })
 
   // Recrutamento
   const [newCatNome, setNewCatNome] = useState('')
@@ -238,6 +345,11 @@ export default function ConfiguracoesPage() {
               >
                 <Icon size={13} />
                 {tab.label}
+                {tab.id === 'solicitacoes' && solicitacoes.length > 0 && (
+                  <span className="ml-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                    {solicitacoes.length}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -261,7 +373,7 @@ export default function ConfiguracoesPage() {
                 onAdd={v => addPatente.mutate(v)}
                 onDelete={v => deletePatente.mutate(v)}
                 placeholder="Nova patente..."
-                canEdit={true}
+                canEdit={canEditConfig}
               />
             </div>
           )}
@@ -275,7 +387,7 @@ export default function ConfiguracoesPage() {
                 onAdd={v => addCargo.mutate(v)}
                 onDelete={v => deleteCargo.mutate(v)}
                 placeholder="Novo cargo..."
-                canEdit={true}
+                canEdit={canEditConfig}
               />
             </div>
           )}
@@ -290,9 +402,24 @@ export default function ConfiguracoesPage() {
                 onDelete={v => deleteQru.mutate(v)}
                 onReorder={items => reorderQrus.mutate(items)}
                 placeholder="Novo QRU..."
-                canEdit={true}
+                canEdit={canEditConfig}
               />
             </div>
+          )}
+
+          {/* Anúncios */}
+          {activeTab === 'anuncios' && (
+            <SituacoesEditor
+              situacoes={situacoes}
+              onAdd={s => addSituacao.mutate(s, {
+                onSuccess: () => addToast('success', 'Situação adicionada!'),
+                onError: () => addToast('error', 'Erro ao adicionar situação.'),
+              })}
+              onUpdate={(id, patch) => updateSituacao.mutate({ id, ...patch })}
+              onDelete={id => deleteSituacao.mutate(id, {
+                onSuccess: () => addToast('success', 'Situação removida.'),
+              })}
+            />
           )}
 
           {/* Recrutamento */}
@@ -339,6 +466,73 @@ export default function ConfiguracoesPage() {
             </div>
           )}
 
+          {/* Solicitações de cadastro (admin only) */}
+          {activeTab === 'solicitacoes' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-orbitron text-xs text-gold tracking-wider mb-1">SOLICITAÇÕES DE CADASTRO</h3>
+                <p className="text-[11px] text-txt3">Aprove um pedido e escolha o nível de acesso. A pessoa completa o próprio perfil no primeiro login.</p>
+              </div>
+
+              {solicitacoes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-txt3">
+                  <Inbox size={28} className="opacity-40" />
+                  <p className="font-mono text-xs">Nenhuma solicitação pendente</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {solicitacoes.map(sol => {
+                    const cargoSel = cargoPorSol[sol.id] ?? ''
+                    return (
+                      <div key={sol.id} className="flex flex-wrap items-center gap-3 px-4 py-3 bg-card2 border border-bdr rounded-lg">
+                        <div className="flex-1 min-w-[180px]">
+                          <p className="text-sm text-txt font-medium">{sol.nome}</p>
+                          <p className="font-mono text-[11px] text-txt3 flex items-center gap-2">
+                            <span className="text-gold3">@{sol.username}</span>
+                            <span className="flex items-center gap-1"><Clock size={10} /> {new Date(sol.criadoEm).toLocaleDateString('pt-BR')}</span>
+                          </p>
+                        </div>
+                        <select
+                          value={cargoSel}
+                          onChange={e => setCargoPorSol(p => ({ ...p, [sol.id]: e.target.value ? Number(e.target.value) : '' }))}
+                          className="bg-card border border-bdr2 rounded px-2 py-1.5 text-xs font-mono text-txt"
+                        >
+                          <option value="">— cargo padrão —</option>
+                          {cargosPerm.map(c => (
+                            <option key={c.id} value={c.id}>{c.admin ? '👑 ' : ''}{c.nome}</option>
+                          ))}
+                        </select>
+                        <button
+                          disabled={aprovarSol.isPending}
+                          onClick={() => aprovarSol.mutate({ id: sol.id, cargoPermId: cargoSel || null }, {
+                            onSuccess: () => addToast('success', `${sol.nome} aprovado.`),
+                            onError: (err: unknown) => addToast('error', (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Erro ao aprovar.'),
+                          })}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-green/15 border border-green/40 text-green text-xs font-mono hover:bg-green/25 transition-colors disabled:opacity-50"
+                        >
+                          <Check size={13} /> Aprovar
+                        </button>
+                        <button
+                          disabled={rejeitarSol.isPending}
+                          onClick={() => {
+                            if (!confirm(`Recusar a solicitação de ${sol.nome}?`)) return
+                            rejeitarSol.mutate(sol.id, { onSuccess: () => addToast('success', 'Solicitação recusada.') })
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-red/10 border border-red/40 text-red text-xs font-mono hover:bg-red/20 transition-colors disabled:opacity-50"
+                        >
+                          <X size={13} /> Recusar
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Permissões (admin only) */}
+          {activeTab === 'permissoes' && <PermissoesEditor />}
+
           {/* Contas (admin only) */}
           {activeTab === 'contas' && (
             <div className="space-y-4">
@@ -352,7 +546,7 @@ export default function ConfiguracoesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-bdr">
-                    {['Usuário', 'Nível', 'Status', 'Ações'].map(h => (
+                    {['Usuário', 'Cargo de permissão', 'Status', 'Ações'].map(h => (
                       <th key={h} className="text-left font-mono text-xs text-txt3 px-3 py-2">{h}</th>
                     ))}
                   </tr>
@@ -363,15 +557,13 @@ export default function ConfiguracoesPage() {
                       <td className="px-3 py-2.5 font-mono text-xs text-txt">{conta.username}</td>
                       <td className="px-3 py-2.5">
                         <select
-                          value={conta.nivel}
+                          value={conta.cargoPermId ?? ''}
                           disabled={conta.id === user?.contaId}
-                          onChange={e => updateConta.mutate({ id: conta.id, nivel: e.target.value })}
+                          onChange={e => updateConta.mutate({ id: conta.id, cargoPermId: e.target.value ? Number(e.target.value) : null })}
                           className="bg-card2 border border-bdr2 rounded px-2 py-0.5 text-xs font-mono text-txt disabled:opacity-50"
                         >
-                          <option value="admin">👑 Admin</option>
-                          <option value="moderador">🔷 Moderador</option>
-                          <option value="membro">👤 Membro</option>
-                          <option value="view_only">👁 View Only</option>
+                          <option value="">— sem cargo —</option>
+                          {cargosPerm.map(cp => <option key={cp.id} value={cp.id}>{cp.admin ? '👑 ' : ''}{cp.nome}</option>)}
                         </select>
                       </td>
                       <td className="px-3 py-2.5">
@@ -433,16 +625,14 @@ export default function ConfiguracoesPage() {
             />
           </div>
           <div>
-            <label className="font-mono text-xs text-txt2 block mb-1">NÍVEL</label>
+            <label className="font-mono text-xs text-txt2 block mb-1">CARGO DE PERMISSÃO</label>
             <select
-              value={novaContaForm.nivel}
-              onChange={e => setNovaContaForm(p => ({ ...p, nivel: e.target.value }))}
+              value={novaContaForm.cargoPermId}
+              onChange={e => setNovaContaForm(p => ({ ...p, cargoPermId: e.target.value ? Number(e.target.value) : '' }))}
               className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt"
             >
-              <option value="membro">👤 Membro</option>
-              <option value="moderador">🔷 Moderador</option>
-              <option value="admin">👑 Admin</option>
-              <option value="view_only">👁 View Only</option>
+              <option value="">— sem cargo —</option>
+              {cargosPerm.map(cp => <option key={cp.id} value={cp.id}>{cp.admin ? '👑 ' : ''}{cp.nome}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
@@ -450,8 +640,8 @@ export default function ConfiguracoesPage() {
               loading={createConta.isPending}
               onClick={() => {
                 if (!novaContaForm.username || !novaContaForm.password) return
-                createConta.mutate(novaContaForm, {
-                  onSuccess: () => { addToast('success', 'Conta criada!'); setNovaContaModal(false); setNovaContaForm({ username: '', password: '', nivel: 'membro' }) },
+                createConta.mutate({ username: novaContaForm.username, password: novaContaForm.password, cargoPermId: novaContaForm.cargoPermId || null }, {
+                  onSuccess: () => { addToast('success', 'Conta criada!'); setNovaContaModal(false); setNovaContaForm({ username: '', password: '', cargoPermId: '' }) },
                   onError: (err: unknown) => {
                     const data = (err as { response?: { data?: { error?: string; details?: string[] } } })?.response?.data
                     const msg = data?.details?.length ? data.details.join(' | ') : (data?.error ?? 'Erro ao criar conta.')

@@ -1,79 +1,101 @@
-import { LogOut, Menu, Eye } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { LogOut, ChevronDown, User as UserIcon } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { useUIStore } from '@/store/uiStore'
-import { useLogo } from '@/hooks/useConfig'
-import RoleBadge from '@/components/ui/RoleBadge'
+import { useMe } from '@/hooks/useMe'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard':        'DASHBOARD',
-  '/acoes/nova':       'REGISTRAR AÇÃO',
-  '/acoes/historico':  'HISTÓRICO DE OPERAÇÕES',
-  '/estatisticas':     'ESTATÍSTICAS',
-  '/recrutamento':     'RECRUTAMENTO',
-  '/membros':          'MEMBROS DA UNIDADE',
-  '/configuracoes':    'CONFIGURAÇÕES',
+  '/dashboard':        'Visão geral',
+  '/avisos':           'Avisos',
+  '/perfil':           'Meu perfil',
+  '/acoes/nova':       'Cadastrar apreensão',
+  '/acoes/pendentes':  'Apreensões pendentes',
+  '/acoes/historico':  'Histórico de apreensões',
+  '/estatisticas':     'Estatísticas',
+  '/membros':          'Membros da unidade',
+  '/ranking':          'Ranking',
+  '/ausencias/nova':   'Registrar ausência',
+  '/ausencias':        'Ausências',
+  '/promocoes':        'Promoções',
+  '/recrutamento':     'Recrutamento',
+  '/anuncio':          'Gerar anúncio',
+  '/cursos':           'Cursos internos',
+  '/configuracoes':    'Configurações',
+}
+
+function resolveTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+  if (pathname.startsWith('/recrutamento/')) return 'Avaliação de recruta'
+  return 'Tática'
 }
 
 export default function Topbar() {
   const { user, logout } = useAuthStore()
-  const { toggleSidebar } = useUIStore()
+  const { data: me } = useMe()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const title = PAGE_TITLES[pathname] || 'SISTEMA TÁTICA'
+  const title = resolveTitle(pathname)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
-  const { data: logoData } = useLogo()
-  const isViewOnly = user?.nivel === 'view_only'
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
 
   async function handleLogout() {
     await logout()
     navigate('/login')
   }
 
+  const initials = (user?.username ?? '?').slice(0, 2).toUpperCase()
+  const roleLabel = me?.admin ? 'Administrador' : 'Efetivo'
+
   return (
-    <header className="h-14 bg-sb border-b border-bdr flex items-center px-4 gap-3 shrink-0">
-      <button
-        onClick={toggleSidebar}
-        className="text-txt2 hover:text-gold transition-colors p-1"
-        aria-label="Toggle sidebar"
-      >
-        <Menu size={20} />
-      </button>
-
-      {/* Logo miniatura */}
-      <div className="logo-ring" style={{ width: 32, height: 32, border: '2px solid var(--gold)' }}>
-        {logoData?.logo ? (
-          <img src={logoData.logo} alt="Logo Tática" className="logo-circle" />
-        ) : (
-          <span className="logo-fallback" style={{ fontSize: 7, letterSpacing: 0 }}>
-            PMC<br />TÁTICA
-          </span>
-        )}
-      </div>
-
-      <h1 className="font-orbitron text-sm font-bold text-gold tracking-widest flex-1">
+    <header className="h-16 bg-bg border-b border-bdr flex items-center px-6 gap-4 shrink-0">
+      <p className="font-mono text-[11px] text-txt2 tracking-[0.25em] uppercase flex-1">
         {title}
-      </h1>
-
-      {/* Badge view only — visível e permanente */}
-      {isViewOnly && (
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-bdr2 bg-bdr font-mono text-[10px] text-txt2 tracking-widest">
-          <Eye size={11} className="text-txt3" />
-          SOMENTE LEITURA
-        </div>
-      )}
+      </p>
 
       {user && (
-        <div className="flex items-center gap-3">
-          <RoleBadge nivel={user.nivel} />
-          <span className="text-txt2 text-sm font-mono">{user.username}</span>
+        <div className="relative" ref={ref}>
           <button
-            onClick={handleLogout}
-            className="text-txt3 hover:text-red transition-colors p-1"
-            aria-label="Sair"
+            onClick={() => setOpen(o => !o)}
+            className="flex items-center gap-3 group"
           >
-            <LogOut size={18} />
+            <div className="text-right leading-tight">
+              <p className="text-sm font-medium text-txt">{user.username}</p>
+              <p className="font-mono text-[10px] text-txt2 tracking-wider uppercase">
+                {roleLabel}
+              </p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-card2 border border-bdr2 flex items-center justify-center text-gold3 text-xs font-semibold overflow-hidden">
+              {me?.avatar
+                ? <img src={me.avatar} alt="" className="w-full h-full object-cover" />
+                : initials}
+            </div>
+            <ChevronDown size={15} className="text-txt3 group-hover:text-txt2 transition-colors" />
           </button>
+
+          {open && (
+            <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-bdr2 rounded-lg shadow-2xl py-1 z-50">
+              <button
+                onClick={() => { setOpen(false); navigate('/perfil') }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-txt2 hover:text-txt hover:bg-white/[0.03] transition-colors">
+                <UserIcon size={15} /> Meu perfil
+              </button>
+              <div className="h-px bg-bdr my-1" />
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red hover:bg-red/10 transition-colors"
+              >
+                <LogOut size={15} /> Sair
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

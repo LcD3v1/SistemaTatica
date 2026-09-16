@@ -13,12 +13,14 @@ export const securityHeaders: RequestHandler = helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'blob:'],
+      mediaSrc:       ["'self'", 'data:', 'blob:'], // vídeo/áudio do login
       connectSrc:     ["'self'"],
-      frameSrc:       ["'none'"],
+      frameSrc:       ["'self'"],
+      childSrc:       ["'self'"],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],
-      frameAncestors: ["'none'"],
+      frameAncestors: ["'none'"], // o próprio painel não pode ser embutido (anti-clickjacking)
       upgradeInsecureRequests: [],
     },
   } : false,

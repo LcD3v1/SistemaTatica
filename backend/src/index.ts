@@ -1,21 +1,27 @@
-import 'dotenv/config'
+// IMPORTANTE: valida variáveis de ambiente ANTES de qualquer outra coisa.
+// Se JWT_SECRET estiver ausente/fraco/placeholder, o processo aborta aqui.
+import { env } from './config/env'
 import path from 'path'
 import { existsSync } from 'fs'
-import express, { Request, Response } from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import hpp from 'hpp'
 import { securityHeaders, permissionsPolicy } from './middleware/securityHeaders'
 import { globalLimiter, apiLimiter } from './middleware/rateLimiter'
 import { sanitizeBody } from './middleware/sanitize'
+import { audit } from './security/audit'
 import { ensureDefaultAdmin } from './data'
 import authRoutes from './routes/auth'
+import publicRoutes from './routes/public'
 import membrosRoutes from './routes/membros'
 import acoesRoutes from './routes/acoes'
 import configRoutes from './routes/config'
 import recrutasRoutes from './routes/recrutas'
+import ausenciasRoutes from './routes/ausencias'
+import avisosRoutes from './routes/avisos'
 
 const app = express()
-const PROD = process.env.NODE_ENV === 'production'
+const PROD = env.PROD
 
 // ── Segurança: camada 1 — headers HTTP ───────────────────────────────────────
 app.use(securityHeaders)
@@ -28,7 +34,7 @@ app.use(globalLimiter)
 // ── CORS (apenas desenvolvimento) ────────────────────────────────────────────
 if (!PROD) {
   app.use(cors({
-    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
+    origin: env.ALLOWED_ORIGIN,
     credentials: true,
   }))
 }
@@ -43,12 +49,20 @@ app.use(sanitizeBody)
 // ── API routes com rate limit específico ─────────────────────────────────────
 app.use('/api', apiLimiter)
 app.use('/api/auth', authRoutes)
+app.use('/api/public', publicRoutes)
 app.use('/api/membros', membrosRoutes)
 app.use('/api/acoes', acoesRoutes)
 app.use('/api/config', configRoutes)
 app.use('/api/recrutas', recrutasRoutes)
+app.use('/api/ausencias', ausenciasRoutes)
+app.use('/api/avisos', avisosRoutes)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))
+
+// ── 404 para rotas de API não encontradas (não cai no fallback do SPA) ─────────
+app.use('/api', (_req: Request, res: Response) => {
+  res.status(404).json({ error: 'Recurso não encontrado' })
+})
 
 // ── Serve frontend buildado ───────────────────────────────────────────────────
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist')
@@ -70,19 +84,30 @@ if (existsSync(frontendDist)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
     res.sendFile(path.join(frontendDist, 'index.html'))
   })
-  console.log('[SWAT] Servindo frontend de:', frontendDist)
+  console.log('[FAST] Servindo frontend de:', frontendDist)
 } else {
-  console.log('[SWAT] Frontend dist não encontrado — rode: npm run build')
+  console.log('[FAST] Frontend dist não encontrado — rode: npm run build')
 }
+
+// ── Tratador global de erros ──────────────────────────────────────────────────
+// Nunca vaza stack trace ao cliente; registra internamente para auditoria.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  console.error('[FAST][ERRO]', err?.message)
+  if (!PROD && err?.stack) console.error(err.stack)
+  try { audit('UNAUTHORIZED_ACCESS', req, `Erro não tratado: ${err?.message ?? 'desconhecido'}`) } catch { /* noop */ }
+  if (res.headersSent) return
+  res.status(500).json({ error: 'Erro interno do servidor' })
+})
 
 const PORT = parseInt(process.env.PORT || '3001', 10)
 
 ensureDefaultAdmin().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[SWAT] Sistema rodando em http://0.0.0.0:${PORT}`)
-    console.log(`[SWAT] Ambiente: ${PROD ? 'produção' : 'desenvolvimento'}`)
+    console.log(`[FAST] Sistema rodando em http://0.0.0.0:${PORT}`)
+    console.log(`[FAST] Ambiente: ${PROD ? 'produção' : 'desenvolvimento'}`)
   })
 }).catch(err => {
-  console.error('[SWAT] Erro ao inicializar:', err)
+  console.error('[FAST] Erro ao inicializar:', err)
   process.exit(1)
 })

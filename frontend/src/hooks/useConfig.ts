@@ -94,6 +94,43 @@ export function useUpdateLogo() {
   })
 }
 
+export interface SituacaoAnuncio {
+  id: number
+  label: string
+  titulo: string
+  texto: string
+}
+export type SituacaoInput = Omit<SituacaoAnuncio, 'id'>
+
+export function useAnuncioSituacoes() {
+  return useQuery<SituacaoAnuncio[]>({
+    queryKey: ['config', 'anuncio-situacoes'],
+    queryFn: async () => (await api.get<SituacaoAnuncio[]>('/config/anuncio-situacoes')).data,
+  })
+}
+
+export function useAddSituacao() {
+  return useMutation({
+    mutationFn: (body: SituacaoInput) => api.post('/config/anuncio-situacoes', body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['config', 'anuncio-situacoes'] }),
+  })
+}
+
+export function useUpdateSituacao() {
+  return useMutation({
+    mutationFn: ({ id, ...body }: Partial<SituacaoInput> & { id: number }) =>
+      api.put(`/config/anuncio-situacoes/${id}`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['config', 'anuncio-situacoes'] }),
+  })
+}
+
+export function useDeleteSituacao() {
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/config/anuncio-situacoes/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['config', 'anuncio-situacoes'] }),
+  })
+}
+
 export function useRecCfg() {
   return useQuery<RecCfg>({
     queryKey: ['config', 'recrutamento'],

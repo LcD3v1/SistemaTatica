@@ -13,7 +13,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useMembros, useCreateMembro, useUpdateMembro, useDeleteMembro, useReorderMembros } from '@/hooks/useMembros'
 import { usePatentes, useCargos } from '@/hooks/useConfig'
-import { useAuthStore } from '@/store/authStore'
+import { usePerms } from '@/hooks/usePerms'
 import { useUIStore } from '@/store/uiStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import GlowCard from '@/components/ui/GlowCard'
@@ -29,7 +29,7 @@ interface NovoMembroForm {
   badge: string; passaporte: string; policial: string
   patenteNPD: string; patenteInterna: string
   status: StatusMembro; entrada: string; promocao: string
-  adv1: boolean; adv2: boolean; adv3: boolean
+  adv1: boolean; adv2: boolean
 }
 
 interface InlineCellProps {
@@ -141,7 +141,6 @@ function SortableRow({ membro, canEdit, onUpdate, onDelete, patentes, cargos }: 
         <div className="flex gap-1">
           <AdvBox active={membro.adv1} index={1} readonly={!canEdit} onClick={() => onUpdate(membro.id, { adv1: !membro.adv1 })} />
           <AdvBox active={membro.adv2} index={2} readonly={!canEdit} onClick={() => onUpdate(membro.id, { adv2: !membro.adv2 })} />
-          <AdvBox active={membro.adv3} index={3} readonly={!canEdit} onClick={() => onUpdate(membro.id, { adv3: !membro.adv3 })} />
         </div>
       </td>
       {canEdit && (
@@ -159,7 +158,7 @@ function SortableRow({ membro, canEdit, onUpdate, onDelete, patentes, cargos }: 
 }
 
 export default function MembrosPage() {
-  const { user } = useAuthStore()
+  const { canEdit: canArea } = usePerms()
   const { addToast } = useUIStore()
   const { data: membros, isLoading } = useMembros()
   const { data: patentes = [] } = usePatentes()
@@ -173,7 +172,7 @@ export default function MembrosPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [localOrder, setLocalOrder] = useState<number[] | null>(null)
 
-  const canEdit = user?.nivel === 'admin' || user?.nivel === 'moderador'
+  const canEdit = canArea('membros')
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -233,7 +232,7 @@ export default function MembrosPage() {
       status: 'Ativo',
       entrada: new Date().toISOString().slice(0, 10),
       promocao: new Date().toISOString().slice(0, 10),
-      adv1: false, adv2: false, adv3: false,
+      adv1: false, adv2: false,
     },
   })
 
@@ -285,7 +284,7 @@ export default function MembrosPage() {
                   <tr className="border-b border-bdr">
                     {[
                       canEdit ? '⠿' : '',
-                      'Badge', 'Passaporte', 'Nome', 'Patente PMC',
+                      'Badge', 'Passaporte', 'Nome', 'Patente',
                       'Cargo Interno', 'Status', 'Entrada', 'Promoção', 'Adv.',
                       canEdit ? '' : '',
                     ].map((h, i) => (
@@ -336,7 +335,7 @@ export default function MembrosPage() {
             <input {...register('policial', { required: true })} className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt" />
           </div>
           <div>
-            <label className="font-mono text-xs text-txt2 tracking-wider block mb-1">PATENTE PMC</label>
+            <label className="font-mono text-xs text-txt2 tracking-wider block mb-1">PATENTE</label>
             <select {...register('patenteNPD')} className="input-gold w-full bg-card2 border border-bdr2 rounded px-3 py-2 text-sm font-mono text-txt">
               <option value="">—</option>
               {patentes.map(p => <option key={p} value={p}>{p}</option>)}
@@ -368,9 +367,9 @@ export default function MembrosPage() {
           <div className="col-span-2">
             <label className="font-mono text-xs text-txt2 tracking-wider block mb-2">ADVERTÊNCIAS</label>
             <div className="flex gap-6">
-              {([1, 2, 3] as const).map(i => (
+              {([1, 2] as const).map(i => (
                 <label key={i} className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" {...register(`adv${i}` as 'adv1' | 'adv2' | 'adv3')} className="accent-gold w-4 h-4" />
+                  <input type="checkbox" {...register(`adv${i}` as 'adv1' | 'adv2')} className="accent-gold w-4 h-4" />
                   <span className="font-mono text-xs text-txt2">Advertência {i}</span>
                 </label>
               ))}

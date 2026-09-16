@@ -5,6 +5,7 @@ import { ArrowLeft, Lock, CheckCircle } from 'lucide-react'
 import { useRecruta, useAvaliarRecruta, useFecharRecruta } from '@/hooks/useRecrutos'
 import { useRecCfg } from '@/hooks/useConfig'
 import { useAuthStore } from '@/store/authStore'
+import { usePerms } from '@/hooks/usePerms'
 import { useUIStore } from '@/store/uiStore'
 import GlowCard from '@/components/ui/GlowCard'
 import HudButton from '@/components/ui/HudButton'
@@ -26,7 +27,8 @@ export default function RecrutaCandidatoPage() {
 
   const [scores, setScores] = useState<Record<number, number>>({})
 
-  const canEdit = user?.nivel === 'admin' || user?.nivel === 'moderador'
+  const { canEdit: canArea } = usePerms()
+  const canEdit = canArea('recrutamento')
   const categorias = recCfg?.categorias ?? []
   const notaMinima = recCfg?.notaMinima ?? 7
 
@@ -107,7 +109,7 @@ export default function RecrutaCandidatoPage() {
             <p className="font-mono text-xs text-txt3 mb-1">RESULTADO FINAL</p>
             <p
               className="font-orbitron text-2xl font-bold tracking-widest"
-              style={{ color: recruta.resultado === 'Aprovado' ? '#27ae60' : '#c0392b' }}
+              style={{ color: recruta.resultado === 'Aprovado' ? '#27ae60' : '#b8433a' }}
             >
               {recruta.resultado === 'Aprovado' ? '✓ APROVADO' : '✕ REPROVADO'}
             </p>
@@ -145,7 +147,7 @@ export default function RecrutaCandidatoPage() {
                 <span className="font-mono text-xs text-txt2">NOTA FINAL</span>
                 <span
                   className="font-orbitron text-sm font-bold"
-                  style={{ color: minhaAvaliacao!.total >= notaMinima ? '#27ae60' : '#c0392b' }}
+                  style={{ color: minhaAvaliacao!.total >= notaMinima ? '#27ae60' : '#b8433a' }}
                 >
                   {minhaAvaliacao!.total}/10
                 </span>
@@ -192,14 +194,14 @@ export default function RecrutaCandidatoPage() {
                 <div className="pt-2">
                   <div className="flex justify-between mb-2">
                     <span className="font-mono text-xs text-txt2">PONTUAÇÃO TOTAL</span>
-                    <span className="font-orbitron text-lg font-bold" style={{ color: aprovado ? '#27ae60' : '#c0392b' }}>
+                    <span className="font-orbitron text-lg font-bold" style={{ color: aprovado ? '#27ae60' : '#b8433a' }}>
                       {total}/10
                     </span>
                   </div>
                   <div className="h-2 bg-bdrg rounded overflow-hidden">
                     <motion.div
                       className="h-full rounded"
-                      style={{ background: aprovado ? '#27ae60' : '#c0392b' }}
+                      style={{ background: aprovado ? '#27ae60' : '#b8433a' }}
                       animate={{ width: `${(total / 10) * 100}%` }}
                       transition={{ duration: 0.4 }}
                     />
@@ -260,7 +262,7 @@ export default function RecrutaCandidatoPage() {
                   </div>
                   <span
                     className="font-orbitron text-sm font-bold shrink-0"
-                    style={{ color: a.total >= notaMinima ? '#27ae60' : '#c0392b' }}
+                    style={{ color: a.total >= notaMinima ? '#27ae60' : '#b8433a' }}
                   >
                     {a.total}/10
                   </span>

@@ -40,14 +40,31 @@ export const changePasswordSchema = z.object({
 export const createContaSchema = z.object({
   username: z.string().min(2).max(64).regex(/^[\w.\-]+$/, 'Usuário contém caracteres inválidos'),
   password: z.string().min(4).max(128),
-  nivel: z.enum(['admin', 'moderador', 'membro', 'view_only']),
+  cargoPermId: z.number().int().positive().nullable().optional(),
 })
 
 export const updateContaSchema = z.object({
-  nivel: z.enum(['admin', 'moderador', 'membro', 'view_only']).optional(),
   ativo: z.boolean().optional(),
   password: z.string().min(4).max(128).optional(),
+  cargoPermId: z.number().int().positive().nullable().optional(),
 }).refine(body => Object.keys(body).length > 0, { message: 'Nenhum campo fornecido' })
+
+const permAreaSchema = z.object({ ver: z.boolean(), editar: z.boolean() })
+
+export const cargoPermCreateSchema = z.object({
+  nome:       safeStr(1, 50),
+  admin:      z.boolean().optional(),
+  permissoes: z.record(z.string(), permAreaSchema).default({}),
+})
+
+export const cargoPermUpdateSchema = z.object({
+  nome:       safeStr(1, 50).optional(),
+  padrao:     z.boolean().optional(),
+  admin:      z.boolean().optional(),
+  permissoes: z.record(z.string(), permAreaSchema).optional(),
+}).refine(b => Object.keys(b).filter(k => b[k as keyof typeof b] !== undefined).length > 0, {
+  message: 'Nenhum campo fornecido',
+})
 
 export const membroSchema = z.object({
   badge:          safeStrOpt(20).default(''),
@@ -60,7 +77,8 @@ export const membroSchema = z.object({
   promocao:       z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   adv1:           z.boolean().default(false),
   adv2:           z.boolean().default(false),
-  adv3:           z.boolean().default(false),
+  horasSemana:    z.number().min(0).max(168).default(0),
+  observacoes:    safeStrOpt(1000).default(''),
 })
 
 export const membroUpdateSchema = z.object({
@@ -74,7 +92,8 @@ export const membroUpdateSchema = z.object({
   promocao:       z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   adv1:           z.boolean().optional(),
   adv2:           z.boolean().optional(),
-  adv3:           z.boolean().optional(),
+  horasSemana:    z.number().min(0).max(168).optional(),
+  observacoes:    safeStrOpt(1000).optional(),
 }).refine(body => Object.keys(body).filter(k => body[k as keyof typeof body] !== undefined).length > 0, {
   message: 'Nenhum campo fornecido',
 })
@@ -84,6 +103,8 @@ export const acaoSchema = z.object({
   qru:          safeStr(1, 50),
   resultado:    z.enum(['Vitória', 'Derrota', 'Empate']),
   comandante:   z.string().max(100).optional(),
+  local:        safeStrOpt(120).optional(),
+  imagem:       z.string().max(500).optional(),
   participants: z.array(z.object({
     memberId:       z.number().int().positive(),
     patenteUnidade: safeStrOpt(50),
@@ -104,6 +125,64 @@ export const avaliacaoRecrutaSchema = z.object({
   scores:      z.record(z.string(), z.number().min(0).max(10)).default({}),
   total:       z.number().min(0).max(10).default(0),
   observacoes: safeStrOpt(500).default(''),
+})
+
+export const ausenciaSchema = z.object({
+  memberId:   z.number().int().positive().optional(),
+  nome:       safeStr(1, 100),
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inicial inválida'),
+  dataFim:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data final inválida'),
+  motivo:     safeStrOpt(500).default(''),
+}).refine(b => b.dataFim >= b.dataInicio, {
+  message: 'A data final deve ser igual ou posterior à inicial',
+  path: ['dataFim'],
+})
+
+export const situacaoAnuncioSchema = z.object({
+  label:  safeStr(1, 60),
+  titulo: safeStr(1, 100),
+  texto:  safeStr(1, 2000),
+})
+
+export const situacaoAnuncioUpdateSchema = z.object({
+  label:  safeStr(1, 60).optional(),
+  titulo: safeStr(1, 100).optional(),
+  texto:  safeStr(1, 2000).optional(),
+}).refine(b => Object.keys(b).filter(k => b[k as keyof typeof b] !== undefined).length > 0, {
+  message: 'Nenhum campo fornecido',
+})
+
+export const solicitacaoSchema = z.object({
+  username: z.string().min(2).max(64).regex(/^[\w.\-]+$/, 'Usuário contém caracteres inválidos'),
+  password: z.string().min(4).max(128),
+  nome:     safeStr(1, 100),
+})
+
+export const onboardingSchema = z.object({
+  policial:       safeStr(1, 100),
+  badge:          safeStrOpt(20).default(''),
+  passaporte:     safeStrOpt(20).default(''),
+  patenteNPD:     safeStrOpt(50).default(''),
+  patenteInterna: safeStrOpt(50).default(''),
+})
+
+export const membroSelfSchema = z.object({
+  policial:       safeStr(1, 100).optional(),
+  badge:          safeStrOpt(20).optional(),
+  passaporte:     safeStrOpt(20).optional(),
+  patenteNPD:     safeStrOpt(50).optional(),
+  patenteInterna: safeStrOpt(50).optional(),
+}).refine(b => Object.keys(b).filter(k => b[k as keyof typeof b] !== undefined).length > 0, {
+  message: 'Nenhum campo fornecido',
+})
+
+export const aprovarSolicitacaoSchema = z.object({
+  cargoPermId: z.number().int().positive().nullable().optional(),
+})
+
+export const avisoSchema = z.object({
+  titulo:   safeStr(1, 120),
+  mensagem: safeStr(1, 2000),
 })
 
 export const qruSchema = z.object({

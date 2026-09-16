@@ -9,15 +9,15 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS = {
-  primary: 'border-gold text-gold hover:bg-gold/10',
-  danger:  'border-red text-red hover:bg-red/10',
-  ghost:   'border-bdrg text-txt2 hover:border-gold hover:text-gold',
+  primary: 'bg-gold text-white hover:bg-gold2 shadow-[0_10px_30px_-12px_rgba(200,200,200,0.7)]',
+  danger:  'bg-red text-white hover:brightness-110 shadow-[0_10px_30px_-12px_rgba(208,69,58,0.6)]',
+  ghost:   'border border-bdr2 text-txt2 hover:text-txt hover:border-bdrg bg-transparent',
 }
 
 const SIZES = {
   sm: 'px-3 py-1.5 text-xs',
   md: 'px-5 py-2.5 text-sm',
-  lg: 'px-8 py-3 text-base',
+  lg: 'px-8 py-3 text-sm',
 }
 
 export default function HudButton({
@@ -26,19 +26,19 @@ export default function HudButton({
 }: Props) {
   return (
     <motion.button
-      whileHover={{ scale: disabled || loading ? 1 : 1.03 }}
-      whileTap={{ scale: disabled || loading ? 1 : 0.97 }}
+      whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
       disabled={disabled || loading}
       className={`
-        border font-orbitron tracking-wider rounded transition-colors duration-200
+        font-medium tracking-wide rounded-lg transition-colors duration-200
         disabled:opacity-40 disabled:cursor-not-allowed
         ${VARIANTS[variant]} ${SIZES[size]} ${className}
       `}
       {...(rest as object)}
     >
       {loading ? (
-        <span className="flex items-center gap-2">
-          <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+        <span className="flex items-center justify-center gap-2">
+          <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
           Aguarde...
         </span>
       ) : children}

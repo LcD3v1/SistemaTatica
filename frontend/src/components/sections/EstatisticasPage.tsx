@@ -126,7 +126,7 @@ export default function EstatisticasPage() {
     const empAll = acoes.filter(a => a.resultado === 'Empate').length
     const wrAll  = calcWinRate(acoes)
     const ativos = (membros ?? []).filter((m: Membro) => m.status === 'Ativo').length
-    const comAdv = (membros ?? []).filter((m: Membro) => m.adv1 || m.adv2 || m.adv3).length
+    const comAdv = (membros ?? []).filter((m: Membro) => m.adv1 || m.adv2).length
 
     const total = filteredAcoes.length
     const vitorias = filteredAcoes.filter(a => a.resultado === 'Vitória').length
@@ -155,7 +155,7 @@ export default function EstatisticasPage() {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(16)
     doc.setTextColor(40, 40, 40)
-    doc.text('SISTEMA TÁTICA', W / 2, y, { align: 'center' })
+    doc.text('TÁTICA — POLÍCIA MILITAR CAPITAL', W / 2, y, { align: 'center' })
     y += 7
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
@@ -237,7 +237,7 @@ export default function EstatisticasPage() {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(150, 150, 150)
-      doc.text(`SISTEMA TÁTICA — ${now.toLocaleDateString('pt-BR')} — Pagina ${i} de ${pageCount}`, W / 2, 290, { align: 'center' })
+      doc.text(`TÁTICA — PMC — ${now.toLocaleDateString('pt-BR')} — Pagina ${i} de ${pageCount}`, W / 2, 290, { align: 'center' })
     }
 
     doc.save(`estatisticas-tatica-${toDate}.pdf`)
@@ -290,7 +290,7 @@ export default function EstatisticasPage() {
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="ações" radius={[3, 3, 0, 0]}>
                   {weekdayData.map((_, i) => (
-                    <Cell key={i} fill={i === 0 || i === 6 ? '#2980b9' : '#909090'} />
+                    <Cell key={i} fill={i === 0 || i === 6 ? '#909090' : '#b8b8b8'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -310,8 +310,8 @@ export default function EstatisticasPage() {
                   <Tooltip content={<CustomTooltip />} />
                   <Legend formatter={v => <span className="font-mono text-[10px] text-txt2">{v}</span>} />
                   <Bar dataKey="Vitórias" stackId="a" fill="#27ae60" />
-                  <Bar dataKey="Derrotas" stackId="a" fill="#c0392b" />
-                  <Bar dataKey="Empates" stackId="a" fill="#2980b9" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Derrotas" stackId="a" fill="#b8433a" />
+                  <Bar dataKey="Empates" stackId="a" fill="#909090" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -408,7 +408,7 @@ export default function EstatisticasPage() {
                             transition={{ duration: 0.7, delay: idx * 0.04 }}
                           />
                           <motion.div
-                            style={{ background: '#c0392b' }}
+                            style={{ background: '#b8433a' }}
                             className="h-full"
                             initial={{ width: 0 }}
                             animate={{ width: `${q.total > 0 ? (q.derrotas / q.total) * 100 : 0}%` }}

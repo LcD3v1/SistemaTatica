@@ -15,7 +15,8 @@ export interface Membro {
   promocao: string
   adv1: boolean
   adv2: boolean
-  adv3: boolean
+  horasSemana?: number   // carga horária semanal (horas logadas na semana)
+  observacoes?: string   // ocorridos / anotações
   ordem?: number
 }
 
@@ -37,13 +38,16 @@ export interface Acao {
   participants: ParticipanteAcao[]
   participantesExtras?: ParticipanteExterno[]
   comandante?: string
+  local?: string
+  imagem?: string
+  status?: 'pendente' | 'aprovada'
 }
 
 export interface Conta {
   id: number
   username: string
-  nivel: Nivel
   ativo: boolean
+  cargoPermId?: number | null
 }
 
 export interface CategoriaRecrutamento {
@@ -79,7 +83,6 @@ export interface Recruta {
 export interface AuthUser {
   contaId: number
   username: string
-  nivel: Nivel
 }
 
 export interface Toast {

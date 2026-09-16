@@ -15,7 +15,8 @@ export interface Membro {
   promocao: string
   adv1: boolean
   adv2: boolean
-  adv3: boolean
+  horasSemana?: number   // carga horária semanal (horas logadas na semana), lançada manualmente
+  observacoes?: string   // ocorridos / anotações do efetivo
   ordem?: number
 }
 
@@ -37,14 +38,53 @@ export interface Acao {
   participants: ParticipanteAcao[]
   participantesExtras?: ParticipanteExterno[]
   comandante?: string
+  local?: string
+  imagem?: string
+  status?: 'pendente' | 'aprovada'
 }
 
 export interface Conta {
   id: number
   username: string
   password: string
-  nivel: Nivel
   ativo: boolean
+  discordId?: string
+  discordUsername?: string
+  avisoLastSeen?: number
+  membroId?: number
+  avatar?: string
+  banner?: string
+  onboarded?: boolean
+  cargoPermId?: number
+}
+
+export interface PermArea {
+  ver: boolean
+  editar: boolean
+}
+
+export interface CargoPermissao {
+  id: number
+  nome: string
+  padrao?: boolean
+  admin?: boolean   // super-usuário: acesso total, gerencia contas/cargos/solicitações
+  permissoes: Record<string, PermArea>
+}
+
+export interface Solicitacao {
+  id: number
+  username: string
+  senha: string       // já com hash
+  nome: string
+  criadoEm: string
+}
+
+export interface Aviso {
+  id: number
+  titulo: string
+  mensagem: string
+  autor: string
+  criadoEm: string
 }
 
 export interface CategoriaRecrutamento {
@@ -77,19 +117,46 @@ export interface Recruta {
   observacoes?: string
 }
 
-export interface SwatData {
+export interface Ausencia {
+  id: number
+  memberId?: number
+  nome: string
+  dataInicio: string
+  dataFim: string
+  motivo: string
+  criadoEm: string
+}
+
+export interface SituacaoAnuncio {
+  id: number
+  label: string
+  titulo: string
+  texto: string
+}
+
+export interface FastData {
   membros: Membro[]
   acoes: Acao[]
   qrus: string[]
+  anuncioSituacoes: SituacaoAnuncio[]
   recrutas: Recruta[]
   recCfg: RecCfg
   patentes: string[]
   cargos: string[]
   contas: Conta[]
+  solicitacoes: Solicitacao[]
+  ausencias: Ausencia[]
+  avisos: Aviso[]
+  cargosPermissao: CargoPermissao[]
   nextMemId: number
   nextAcId: number
   nextRecId: number
   nextContaId: number
+  nextAusId: number
+  nextSitId: number
+  nextAvisoId: number
+  nextSolId: number
+  nextCargoPermId: number
   logo: string
   membrosOrder: number[]
 }
@@ -97,5 +164,4 @@ export interface SwatData {
 export interface AuthPayload {
   contaId: number
   username: string
-  nivel: Nivel
 }

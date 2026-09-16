@@ -6,6 +6,7 @@ import type { Acao, AcoesResponse } from '@/types'
 interface AcoesFilter {
   qru?: string
   resultado?: string
+  status?: 'pendente' | 'aprovada'
   page?: number
   limit?: number
 }
@@ -35,6 +36,13 @@ export function useAllAcoes() {
 export function useCreateAcao() {
   return useMutation({
     mutationFn: (body: Omit<Acao, 'id'>) => api.post<Acao>('/acoes', body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['acoes'] }),
+  })
+}
+
+export function useApproveAcao() {
+  return useMutation({
+    mutationFn: (id: number) => api.put(`/acoes/${id}/aprovar`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['acoes'] }),
   })
 }

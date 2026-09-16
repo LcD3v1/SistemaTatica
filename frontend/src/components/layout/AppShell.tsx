@@ -5,13 +5,15 @@ import { useEffect } from 'react'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import ToastContainer from '@/components/ui/ToastNotification'
-import ScanlineOverlay from '@/components/ui/ScanlineOverlay'
+import OnboardingPage from '@/components/sections/OnboardingPage'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
+import { useMe } from '@/hooks/useMe'
 
 export default function AppShell() {
   const location = useLocation()
   const token = useAuthStore(s => s.token)
+  const { data: me, isLoading: meLoading } = useMe()
 
   useEffect(() => {
     if (!token) return
@@ -19,9 +21,13 @@ export default function AppShell() {
     return () => clearInterval(id)
   }, [token])
 
+  // Primeiro acesso: conta aprovada ainda sem perfil → força cadastro
+  if (!meLoading && me && me.onboarded === false) {
+    return <OnboardingPage />
+  }
+
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
-      <ScanlineOverlay />
       <Sidebar />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
